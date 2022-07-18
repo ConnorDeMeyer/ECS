@@ -7,7 +7,7 @@
 #include <functional>
 #include <ranges>
 
-
+#include "../Allocators/ObjectPoolAllocator.h"
 #include "TypeViewBase.h"
 
 template <typename T>
@@ -88,6 +88,10 @@ public:
 
 private:
 
+	VoidIterator GetVoidIterator() override;
+
+	VoidIterator GetVoidIteratorEnd() override;
+
 	/** Creates a map between the id and the data and vice-versa*/
 	void AddMap(entityId id, T* data);
 
@@ -112,7 +116,7 @@ private:
 private:
 
 	std::vector<T> m_Data;
-	std::unordered_map<entityId, ReferencePointer<T>> m_EntityDataReferences;
+	std::unordered_map<entityId, ReferencePointer<T>*> m_EntityDataReferences;
 	std::vector<entityId> m_DataEntityMap{ 16,Entity::InvalidId };
 
 	ReferencePointer<T> m_InvalidReference{ nullptr };
@@ -121,6 +125,8 @@ private:
 
 	/** Amount of active items inside of the array*/
 	size_t m_InactiveItems{};
+
+	ObjectPoolAllocator<ReferencePointer<T>> m_ReferencePool;
 
 	ViewDataFlag m_dataFlag{ ViewDataFlag::valid };
 
@@ -132,7 +138,7 @@ Reference<T> TypeView<T>::Get(entityId id) const
 	auto it = m_EntityDataReferences.find(id);
 	if (it != m_EntityDataReferences.end())
 	{
-		return it->second;
+		return *it->second;
 	}
 	return m_InvalidReference;
 }
@@ -169,7 +175,7 @@ template <typename T>
 T* TypeView<T>::Add(entityId id)
 {
 	CheckDataSize();
-	T* element = &m_Data.emplace_back(T());
+	T* element = &m_Data.emplace_back();
 	AddMap(id, element);
 	for (auto& callback : OnElementAdd)
 		callback(this, id);
@@ -182,7 +188,7 @@ void TypeView<T>::Remove(entityId id)
 	auto it = m_EntityDataReferences.find(id);
 	if (it != m_EntityDataReferences.end())
 	{
-		size_t pos = it->second.m_ptr - m_Data.data();
+		size_t pos = it->second->m_ptr - m_Data.data();
 
 		// swap remove
 		m_Data[pos] = m_Data.back();
@@ -190,6 +196,8 @@ void TypeView<T>::Remove(entityId id)
 
 		for (auto& callback : OnElementRemove)
 			callback(this, id);
+
+		m_ReferencePool.deallocate(it->second);
 
 		m_EntityDataReferences.erase(it);
 	}
@@ -202,12 +210,27 @@ bool TypeView<T>::Contains(entityId id)
 }
 
 template <typename T>
+VoidIterator TypeView<T>::GetVoidIterator()
+{
+	return VoidIterator(static_cast<void*>(&*begin()), sizeof(T));
+}
+
+template <typename T>
+VoidIterator TypeView<T>::GetVoidIteratorEnd()
+{
+	return ++VoidIterator(static_cast<void*>(&*(--end())), sizeof(T));
+}
+
+template <typename T>
 void TypeView<T>::AddMap(entityId id, T* data)
 {
 	size_t pos = GetPosition(data);
 
+	auto reference = m_ReferencePool.allocate();
+	reference->m_ptr = data;
+
 	// insert into entity data map
-	m_EntityDataReferences.emplace(id, data);
+	m_EntityDataReferences.emplace(id, reference);
 
 	// insert into data entity map
 	CheckDataEntityMap(pos);
@@ -240,7 +263,7 @@ void TypeView<T>::ResizeData()
 
 	for (auto& reference : m_EntityDataReferences)
 	{
-		reference.second.m_ptr += difference;
+		reference.second->m_ptr += difference;
 	}
 }
 
@@ -277,6 +300,6 @@ void TypeView<T>::ChangeMapping(size_t oldPosArray, size_t newPosArray)
 	m_DataEntityMap[newPosArray] = id;
 	m_DataEntityMap[oldPosArray] = Entity::InvalidId;
 
-	m_EntityDataReferences[id].m_ptr = m_Data.data() + newPosArray;
+	m_EntityDataReferences[id]->m_ptr = m_Data.data() + newPosArray;
 }
 

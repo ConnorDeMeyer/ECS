@@ -10,6 +10,84 @@
 #include "TypeView.h"
 #include "TypeBinding.h"
 
+using GameComponentClass = class GameComponent;
+
+class TypeBindingIdentifier final
+{
+public:
+
+	TypeBindingIdentifier() = default;
+
+	~TypeBindingIdentifier();
+
+	TypeBindingIdentifier(const TypeBindingIdentifier&) = delete;
+	TypeBindingIdentifier& operator=(const TypeBindingIdentifier&) = delete;
+
+	TypeBindingIdentifier(TypeBindingIdentifier&& other) noexcept;
+	TypeBindingIdentifier& operator=(TypeBindingIdentifier&& other) noexcept;
+
+	template <typename... Types>
+	void Initialize(TypeBindingBase* TypeBinding)
+	{
+		m_TypeBinding = TypeBinding;
+		m_TypesAmount = sizeof...(Types);
+		m_TypesHashes = new uint32_t[m_TypesAmount];
+
+		FillTypeHashes<Types...>(0);
+	}
+
+	template <typename... Types>
+	bool Compare()
+	{
+		return CompareAllTypes<Types...>();
+	}
+
+	TypeBindingBase* GetTypeBinding() const { return m_TypeBinding; }
+
+	template <typename Type>
+	bool Contains()
+	{
+		constexpr uint32_t Id{ reflection::type_id<Type>() };
+		for (uint32_t i{}; i < m_TypesAmount; ++i)
+		{
+			if (m_TypesHashes[i] == Id)
+				return true;
+		}
+		return false;
+	}
+
+private:
+
+	template <typename Type, typename... Types>
+	void FillTypeHashes(uint32_t counter)
+	{
+		if constexpr (sizeof...(Types) != 0)
+		{
+			m_TypesHashes[counter] = reflection::type_id<Type>();
+			FillTypeHashes<Types...>(++counter);
+		}
+	}
+
+	template <typename Type, typename... Types>
+	bool CompareAllTypes()
+	{
+		if constexpr (sizeof...(Types) != 0)
+		{
+			return Contains<Type>()
+				|| CompareAllTypes<Types...>();
+		}
+		else
+		{
+			return Contains<Type>();
+		}
+	}
+
+private:
+	TypeBindingBase*	m_TypeBinding{};
+	uint32_t			m_TypesAmount{};
+	uint32_t*			m_TypesHashes{};
+};
+
 class EntityRegistry final
 {
 public:
@@ -37,6 +115,13 @@ public:
 	template <typename... Types>
 	TypeBinding<Types...>& AddBinding();
 
+	template <typename... Types>
+	TypeBinding<Types...>& GetBinding();
+
+	//const std::vector<TypeView<GameComponentClass>*>& GetGameComponentViews() const { return m_GameComponentTypeViews; }
+
+	void ForEachGameComponent(const std::function<void(GameComponentClass*)>& function);
+
 private:
 
 
@@ -47,8 +132,9 @@ private:
 
 	std::unordered_map<uint32_t, std::unique_ptr<TypeViewBase>> m_TypeViews;
 
-	std::vector<std::unique_ptr<TypeBindingBase>> m_TypeBinders;
-	
+	std::vector<TypeBindingIdentifier> m_TypeBindings;
+
+	std::vector<TypeViewBase*> m_GameComponentTypeViews;
 
 };
 
@@ -70,6 +156,11 @@ TypeView<T>& EntityRegistry::AddView()
 	auto view = new TypeView<T>();
 	m_TypeViews.emplace(reflection::type_id<T>(), view);
 
+	if constexpr (std::is_base_of_v<GameComponentClass, T>)
+	{
+		m_GameComponentTypeViews.push_back(view);
+	}
+
 	return *view;
 }
 
@@ -77,9 +168,13 @@ template <typename ... Types>
 TypeBinding<Types...>& EntityRegistry::AddBinding()
 {
 	auto binding = new TypeBinding<Types...>(*this);
-	m_TypeBinders.emplace_back(binding);
-	
-	
+	{
+		TypeBindingIdentifier identifier{};
+		identifier.Initialize<Types...>(binding);
+
+		m_TypeBindings.emplace_back(std::move(identifier));
+	}
+
 	int32_t firstTypeId = binding->GetTypeId(0);
 	auto& view = m_TypeViews[firstTypeId];
 	auto& entities = view->GetRegisteredEntities();
@@ -153,6 +248,20 @@ TypeBinding<Types...>& EntityRegistry::AddBinding()
 	}
 	
 	return *binding;
+}
+
+template <typename ... Types>
+TypeBinding<Types...>& EntityRegistry::GetBinding()
+{
+	for (auto& binding : m_TypeBindings)
+	{
+		if (binding.Compare<Types...>())
+		{
+			return *reinterpret_cast<TypeBinding<Types...>*>(binding.GetTypeBinding());
+		}
+	}
+
+	throw std::runtime_error("No Binding inside of this type inside of registry");
 }
 
 	

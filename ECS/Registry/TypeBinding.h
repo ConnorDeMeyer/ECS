@@ -50,7 +50,14 @@ public:
 	public:
 
 		template <typename T>
-		Reference<T> Get() const { return (m_Data[GetTypePosCompare<T, Types...>()].ToReference<T>()); }
+		Reference<T> Get() const
+		{
+			constexpr size_t pos{ GetTypePosCompare<T, Types...>() };
+			assert(pos < sizeof...(Types));
+			auto& voidRef = m_Data[pos];
+			auto ref = voidRef.ToReference<T>();
+			return ref;
+		}
 
 		VoidReference Get(size_t index) const { return m_Data[index]; }
 

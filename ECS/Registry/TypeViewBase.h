@@ -66,10 +66,72 @@ public:
 	const ReferencePointer<T>& GetReferencePointer() const { return *static_cast<const ReferencePointer<T>*>(m_ReferencePointer); }
 
 	template <typename T>
-	Reference<T> ToReference() const { return *static_cast<const Reference<T>*>(m_ReferencePointer); }
+	Reference<T> ToReference() const
+	{
+		auto reference = static_cast<const ReferencePointer<T>*>(m_ReferencePointer);
+		return *reference;
+	}
 
 private:
 	const void* m_ReferencePointer{};
+};
+
+class VoidIterator final
+{
+public:
+	using iterator_category		= std::random_access_iterator_tag;
+	using value_type			= void*;
+	using difference_type		= size_t;
+	using pointer				= void*;
+	using reference				= void*&;
+public:
+	VoidIterator(const VoidIterator&) = default;
+	VoidIterator(VoidIterator&&) = default;
+	VoidIterator& operator=(const VoidIterator&) = default;
+	VoidIterator& operator=(VoidIterator&&) = default;
+	~VoidIterator() = default;
+	VoidIterator(void* ptr, size_t variableSize) : m_ptr(ptr), m_VariableSize(variableSize) {}
+
+	template <typename T>
+	VoidIterator(void* ptr) : m_ptr(ptr), m_VariableSize(sizeof(T)) {}
+public:
+	bool operator==(const VoidIterator& rhs) const { return m_ptr == rhs.m_ptr; }
+	bool operator!=(const VoidIterator& rhs) const { return m_ptr != rhs.m_ptr; }
+	bool operator<(	const VoidIterator& rhs) const { return m_ptr < rhs.m_ptr; }
+	bool operator>(	const VoidIterator& rhs) const { return m_ptr > rhs.m_ptr; }
+	bool operator<=(const VoidIterator& rhs) const { return m_ptr <= rhs.m_ptr; }
+	bool operator>=(const VoidIterator& rhs) const { return m_ptr >= rhs.m_ptr; }
+
+	void*& operator*() { return m_ptr; }
+	void* operator*() const { return m_ptr; }
+	void*& operator->() { return m_ptr; }
+
+	VoidIterator& operator++() { m_ptr = BytePtr() + m_VariableSize; return *this; }
+	VoidIterator& operator--() { m_ptr = BytePtr() - m_VariableSize; return *this; }
+	VoidIterator operator++(int) { VoidIterator ph{ *this }; m_ptr = BytePtr() + m_VariableSize; return ph; }
+	VoidIterator operator--(int) { VoidIterator ph{ *this }; m_ptr = BytePtr() - m_VariableSize; return ph; }
+
+	VoidIterator& operator+=(size_t rhs) { m_ptr = BytePtr() + rhs * m_VariableSize; return *this; }
+	VoidIterator& operator-=(size_t rhs) { m_ptr = BytePtr() - rhs * m_VariableSize; return *this; }
+
+	VoidIterator operator+(size_t rhs) { return VoidIterator{ *this += rhs }; }
+	VoidIterator operator-(size_t rhs) { return VoidIterator{ *this -= rhs }; }
+	//VoidIterator operator+(const VoidIterator& rhs) { return VoidIterator{ m_ptr + rhs.m_ptr }; }
+	//VoidIterator operator-(const VoidIterator& rhs) { return VoidIterator{ m_ptr - rhs.m_ptr }; }
+
+	void* operator[](size_t offset) const { return static_cast<void*>(BytePtr() + offset * m_VariableSize); }
+public:
+
+	template <typename T>
+	T* get() { return static_cast<T*>(m_ptr); }
+
+private:
+
+	uint8_t* BytePtr() const { return static_cast<uint8_t*>(m_ptr); }
+
+private:
+	void* m_ptr{};
+	size_t m_VariableSize{};
 };
 
 class TypeViewBase
@@ -92,6 +154,9 @@ public:
 
 	/** Returns a void pointer to a reference pointer*/
 	virtual VoidReference GetVoidReference(entityId id) const = 0;
+
+	virtual VoidIterator GetVoidIterator() = 0;
+	virtual VoidIterator GetVoidIteratorEnd() = 0;
 
 public:
 
