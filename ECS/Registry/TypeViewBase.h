@@ -28,6 +28,15 @@ enum class ViewDataFlag : uint8_t
 	   invalid,
 };
 
+enum class SortingProgress : uint8_t
+{
+	none,
+	sorting,
+	canceled,
+	done,
+	copying
+};
+
 template <typename T>
 class ReferencePointer final
 {
@@ -134,11 +143,13 @@ private:
 	size_t m_VariableSize{};
 };
 
+class EntityRegistry;
+
 class TypeViewBase
 {
 public:
 
-	TypeViewBase() = default;
+	TypeViewBase(EntityRegistry* registry) : m_pRegistry(registry) { }
 	virtual ~TypeViewBase() = default;
 
 	TypeViewBase(const TypeViewBase&) = delete;
@@ -146,9 +157,11 @@ public:
 	TypeViewBase& operator=(const TypeViewBase&) = delete;
 	TypeViewBase& operator=(TypeViewBase&&) = delete;
 
+	EntityRegistry* GetRegistry() const { return m_pRegistry; }
+
 public:
 
-	virtual const std::vector<entityId>& GetRegisteredEntities() const = 0;
+	const std::vector<entityId>& GetRegisteredEntities() const { return m_DataEntityMap; }
 
 	virtual bool Contains(entityId id) = 0;
 
@@ -158,10 +171,22 @@ public:
 	virtual VoidIterator GetVoidIterator() = 0;
 	virtual VoidIterator GetVoidIteratorEnd() = 0;
 
+	ViewDataFlag GetDataFlag() const { return m_DataFlag; }
+
+	virtual void SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit) = 0;
+
 public:
 
 	std::vector<std::function<void(TypeViewBase*, entityId)>> OnElementAdd;
 	
 	std::vector<std::function<void(TypeViewBase*, entityId)>> OnElementRemove;
+
+protected:
+
+	std::vector<entityId> m_DataEntityMap{ 16,Entity::InvalidId };
+
+	EntityRegistry* m_pRegistry{};
+
+	ViewDataFlag m_DataFlag{ ViewDataFlag::valid };
 
 };

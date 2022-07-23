@@ -7,8 +7,9 @@
 #include <stdexcept>
 
 #include "../TypeInformation/reflection.h"
-#include "TypeView.h"
+#include "../Sorting/SorterThreadPool.h"
 #include "TypeBinding.h"
+#include "TypeView.h"
 
 using GameComponentClass = class GameComponent;
 
@@ -86,6 +87,7 @@ private:
 	TypeBindingBase*	m_TypeBinding{};
 	uint32_t			m_TypesAmount{};
 	uint32_t*			m_TypesHashes{};
+
 };
 
 class EntityRegistry final
@@ -122,6 +124,8 @@ public:
 
 	void ForEachGameComponent(const std::function<void(GameComponentClass*)>& function);
 
+	void Update();
+
 private:
 
 
@@ -135,6 +139,12 @@ private:
 	std::vector<TypeBindingIdentifier> m_TypeBindings;
 
 	std::vector<TypeViewBase*> m_GameComponentTypeViews;
+
+private:
+
+	// sorting
+	inline static ThreadPool SortingThreadPool;
+	std::array<volatile SortingProgress, ThreadPool::MaxThreads> m_SortingProgress;
 
 };
 
@@ -153,7 +163,7 @@ TypeView<T>& EntityRegistry::GetView()
 template <typename T>
 TypeView<T>& EntityRegistry::AddView()
 {
-	auto view = new TypeView<T>();
+	auto view = new TypeView<T>(this);
 	m_TypeViews.emplace(reflection::type_id<T>(), view);
 
 	if constexpr (std::is_base_of_v<GameComponentClass, T>)

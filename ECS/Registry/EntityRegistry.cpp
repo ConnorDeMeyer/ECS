@@ -47,3 +47,43 @@ void EntityRegistry::ForEachGameComponent(const std::function<void(GameComponent
 		}
 	}
 }
+
+void EntityRegistry::Update()
+{
+	for (auto& typeView : m_TypeViews)
+	{
+		if (typeView.second->GetDataFlag() == ViewDataFlag::dirty)
+		{
+			for (size_t i{}; i < ThreadPool::MaxThreads; ++i)
+			{
+				auto& progress = m_SortingProgress[i];
+				if (progress == SortingProgress::none)
+				{
+					auto& quitBool{ SortingThreadPool.GetQuitBool() };
+					SortingThreadPool.AddFunction([&typeView, &progress, &quitBool] {typeView.second->SortData(progress, quitBool); });
+					break;
+				}
+			}
+		}
+	}
+
+	for (size_t i{}; i < ThreadPool::MaxThreads; ++i)
+	{
+		auto& progress = m_SortingProgress[i];
+		switch (progress)
+		{
+		case SortingProgress::done:
+			{
+			progress = SortingProgress::copying;
+				while (progress != SortingProgress::none)
+				{}
+			}
+			break;
+		case SortingProgress::canceled:
+			progress = SortingProgress::none;
+			break;
+		}
+	}
+		
+}
+

@@ -9,12 +9,14 @@
 #include "TestClasses/Transform.h"
 #include "TestClasses/Render.h"
 #include "TestClasses/gameComponentTest.h"
+#include "Sorting/SmoothSort.h"
+#include "Sorting/SorterThreadPool.h"
 
 int main()
 {
     EntityRegistry registry;
     
-    for (int i{}; i < 16; ++i)
+    for (int i{}; i < 24; ++i)
     	registry.CreateEntity();
 
     auto& transforms = registry.AddView<Transform>();
@@ -42,6 +44,11 @@ int main()
     for (size_t i{}; i < transforms.GetSize(); ++i)
     {
         transforms.Get(i)->position[0] = float(i);
+    }
+
+    for (size_t i{}; i < renders.GetSize(); ++i)
+    {
+        renders.Get(i)->location[0] = float(i);
     }
 
     for (auto& transform : transforms)
@@ -83,10 +90,26 @@ int main()
     std::cout << "GameComps\n";
 
     
-
     registry.ForEachGameComponent([](GameComponentClass* comp)
         {
             comp->Initialize();
         });
+
+    renders.SetSortingPredicate([](const Render& rhs, const Render& lhs) {return rhs.location[0] > lhs.location[0]; });
+
+    renders.Add(registry.GetEntities()[20]);
+
+    registry.Update();
+
+    while (true)
+    {
+        registry.Update();
+        std::cout << "Updated\n";
+        for (auto& render : renders)
+        {
+            std::cout << render.location[0] << '\n';
+        }
+    }
+
 }
 

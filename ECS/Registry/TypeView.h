@@ -8,13 +8,14 @@
 #include <ranges>
 
 #include "../Allocators/ObjectPoolAllocator.h"
+#include "../Sorting/SmoothSort.h"
 #include "TypeViewBase.h"
 
 template <typename T>
 class TypeView : public TypeViewBase
 {
 public:
-	TypeView() = default;
+	TypeView(EntityRegistry* registry) : TypeViewBase(registry) {};
 	virtual ~TypeView() = default;
 
 	TypeView(const TypeView&) = delete;
@@ -47,11 +48,9 @@ public:
 
 	bool Contains(entityId id) override;
 
-	const std::vector<entityId>& GetRegisteredEntities() const { return m_DataEntityMap; }
-
 	/** Sets the sorting algorithm for which the data will be sorted by.*/
-	void SetSortingAlgorithm(const std::function<bool(const T*, const T*)>& predicate);
-	void SetSortingAlgorithm(std::function<bool(const T*, const T*)>&& predicate);
+	void SetSortingPredicate(const std::function<bool(const T&, const T&)>& predicate) { m_SortingAlgorithm = predicate; }
+	void SetSortingPredicate(std::function<bool(const T&, const T&)>&& predicate) { m_SortingAlgorithm = predicate; };
 
 	/** Returns the amount of elements inside of the underlying array.*/
 	size_t GetSize() const { return m_Data.size(); }
@@ -111,26 +110,34 @@ private:
 	/** Returns the position of the element inside of the Data array*/
 	size_t GetPosition(T* element);
 
-	void ChangeMapping(size_t oldPosArray, size_t newPosArray);
+	void ChangeMapping(size_t oldPos, size_t newPos);
+
+	void SetViewDataFlag(ViewDataFlag flag);
+
+	void SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit) override;
 
 private:
 
 	std::vector<T> m_Data;
 	std::unordered_map<entityId, ReferencePointer<T>*> m_EntityDataReferences;
-	std::vector<entityId> m_DataEntityMap{ 16,Entity::InvalidId };
 
 	ReferencePointer<T> m_InvalidReference{ nullptr };
 
-	std::function<bool(const T*, const T*)> m_SortingAlgorithm;
+	std::function<bool(const T&, const T&)> m_SortingAlgorithm;
 
 	/** Amount of active items inside of the array*/
 	size_t m_InactiveItems{};
 
 	ObjectPoolAllocator<ReferencePointer<T>> m_ReferencePool;
 
-	ViewDataFlag m_dataFlag{ ViewDataFlag::valid };
-
 };
+
+template <typename T>
+entityId TypeView<T>::GetId(const T* element) const
+{
+	assert(m_Data.data() - element < m_Data.size());
+	return m_DataEntityMap[m_Data.data() - element];
+}
 
 template <typename T>
 Reference<T> TypeView<T>::Get(entityId id) const
@@ -157,6 +164,9 @@ T* TypeView<T>::Add(entityId id, const T& data)
 	AddMap(id, element);
 	for (auto& callback : OnElementAdd)
 		callback(this, id);
+
+	SetViewDataFlag(ViewDataFlag::dirty);
+
 	return element;
 }
 
@@ -168,6 +178,9 @@ T* TypeView<T>::Add(entityId id, T&& data)
 	AddMap(id, element);
 	for (auto& callback : OnElementAdd)
 		callback(this, id);
+
+	SetViewDataFlag(ViewDataFlag::dirty);
+
 	return element;
 }
 
@@ -179,6 +192,9 @@ T* TypeView<T>::Add(entityId id)
 	AddMap(id, element);
 	for (auto& callback : OnElementAdd)
 		callback(this, id);
+
+	SetViewDataFlag(ViewDataFlag::dirty);
+
 	return element;
 }
 
@@ -200,6 +216,8 @@ void TypeView<T>::Remove(entityId id)
 		m_ReferencePool.deallocate(it->second);
 
 		m_EntityDataReferences.erase(it);
+
+		m_DataFlag = ViewDataFlag::dirty;
 	}
 }
 
@@ -301,5 +319,85 @@ void TypeView<T>::ChangeMapping(size_t oldPosArray, size_t newPosArray)
 	m_DataEntityMap[oldPosArray] = Entity::InvalidId;
 
 	m_EntityDataReferences[id]->m_ptr = m_Data.data() + newPosArray;
+}
+
+template <typename T>
+void TypeView<T>::SetViewDataFlag(ViewDataFlag flag)
+{
+	switch (flag)
+	{
+	case ViewDataFlag::dirty:
+		if (m_SortingAlgorithm)
+		{
+			m_DataFlag = ViewDataFlag::dirty;
+		}
+		break;/*
+	case ViewDataFlag::invalid:
+		if (m_SortingAlgorithm)
+		{
+			
+			m_DataFlag = ViewDataFlag::valid;
+		}
+		break;*/
+	}
+}
+
+template <typename T>
+void TypeView<T>::SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit)
+{
+	try
+	{
+		sortingProgress = SortingProgress::sorting;
+
+		size_t size = m_Data.size();
+		auto DataCopy = std::unique_ptr<T[]>(new T[size]);
+		auto newEntityMapping = std::unique_ptr<entityId[]>(new entityId[size]);
+
+		std::memcpy(DataCopy.get(), m_Data.data(), size * sizeof(T));
+		std::memcpy(newEntityMapping.get(), m_DataEntityMap.data(), size * sizeof(entityId));
+
+		m_DataFlag = ViewDataFlag::sorting;
+
+		SmoothSort(DataCopy.get(), newEntityMapping.get(), m_DataFlag, size, m_SortingAlgorithm);
+
+		if (m_DataFlag == ViewDataFlag::sorting) // in case the data flag changed to dirty while sorting
+		{
+			sortingProgress = SortingProgress::done;
+
+			auto entityCopyBuffer = std::unique_ptr<T*[]>(new T*[size]);
+
+			while (sortingProgress != SortingProgress::copying)
+			{
+				if (quit)
+					return;
+			}
+
+			std::memcpy(m_Data.data(), DataCopy.get(), sizeof(T) * size);
+
+			for (size_t i{}; i < size; ++i)
+			{
+				auto newId{ newEntityMapping[i] };
+				entityCopyBuffer[i] = m_EntityDataReferences[newId]->m_ptr;
+			}
+
+			for (size_t i{}; i < size; ++i)
+			{
+				auto oldId{ m_DataEntityMap[i] };
+				m_EntityDataReferences[oldId]->m_ptr = entityCopyBuffer[i];
+			}
+
+			sortingProgress = SortingProgress::none;
+			m_DataFlag = ViewDataFlag::valid;
+		}
+		else
+		{
+			sortingProgress = SortingProgress::canceled;
+		}
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << e.what();
+		sortingProgress = SortingProgress::canceled;
+	}
 }
 

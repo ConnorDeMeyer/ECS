@@ -1,9 +1,10 @@
 #pragma once
 #include <tuple>
 #include <array>
+#include <cassert>
 #include <iterator>
 
-#include "TypeView.h"
+#include "TypeViewBase.h"
 #include "../TypeInformation/reflection.h"
 #include "TypeBindingBase.h"
 
