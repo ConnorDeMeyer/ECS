@@ -6,16 +6,29 @@ using entityId = size_t;
 
 class EntityRegistry;
 
-class Entity
+class Entity final
 {
-public:
 
-
+	friend class EntityRegistry;
+	friend class GameObject;
 
 private:
 
+	Entity(EntityRegistry& registry, entityId id = Entity::InvalidId)
+		: m_Registry(registry)
+		, m_Id(id)
+	{}
+
+public:
+
+	entityId GetId() const { return m_Id; }
+	const EntityRegistry& GetRegistry() const { return m_Registry; }
+	EntityRegistry& GetRegistry() { return m_Registry; }
+
+private:
+
+	EntityRegistry& m_Registry;
 	entityId m_Id{ Entity::InvalidId };
-	EntityRegistry* m_pRegistry{};
 
 public:
 

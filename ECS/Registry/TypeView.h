@@ -7,15 +7,46 @@
 #include <functional>
 #include <ranges>
 
+#include "../TypeInformation/TypeInfoGenerator.h"
 #include "../Allocators/ObjectPoolAllocator.h"
 #include "../Sorting/SmoothSort.h"
 #include "TypeViewBase.h"
+
+#include "../TestClasses/Render.h"
+
+/** If the Serializable function given T as value type exists*/
+template <typename T>
+concept Serializable = requires(std::ofstream& fstream, T val){ val.Serialize(fstream); };
+
+/** If the Deserializable function given T as value type exists*/
+template <typename T>
+concept Deserializable = requires(std::ifstream& fstream, T val){ val.Deserialize(fstream); };
+
+/** If the type is both Serializable and Deserializable*/
+template <typename T>
+concept Streamable = Serializable<T> && Deserializable<T>;
+
+/** If a function exists called SortCompare that takes (const T&, const T&) as parameters, it will automatically set it as the sorting algorithm*/
+template <typename T>
+concept Sortable = requires(T val0, T val1) { SortCompare(val0, val1); };
+
+/** If a Class should be initialized it can be given the Initialize function which will be called when it is placed inside of the Type View*/
+template <typename T>
+concept Initializable = requires(class EntityRegistry* registry, T val) { val.Initialize(registry); };
+
+inline bool SortCompare(int i0, int i1) { return i0 < i1; }
 
 template <typename T>
 class TypeView : public TypeViewBase
 {
 public:
-	TypeView(EntityRegistry* registry) : TypeViewBase(registry) {};
+
+	TypeView(EntityRegistry* registry) : TypeViewBase(registry)
+	{
+		if constexpr (Sortable<T>) {
+			m_SortingAlgorithm = std::function<bool(const T&, const T&)>(static_cast<bool (*)(const T&, const T&)>(&SortCompare));
+		}
+	}
 	virtual ~TypeView() = default;
 
 	TypeView(const TypeView&) = delete;
@@ -25,26 +56,36 @@ public:
 
 public:
 
+	void Update() override;
+
 	entityId GetId(const T* element) const;
+
+	entityId GetEntityId(const void* elementAddress) override;
 
 	Reference<T> Get(entityId id) const;
 
 	VoidReference GetVoidReference(entityId id) const override;
 
 	/** Copies the data instance into the contiguous array that is kept by this class*/
-	T* Add(entityId id, const T& data);
+	Reference<T> Add(entityId id, const T& data);
 
 	/** Moves the data instance into the contiguous array that is kept by this class*/
-	T* Add(entityId id, T&& data);
+	Reference<T> Add(entityId id, T&& data);
 
 	/** Creates an instance of type T and emplaces it into the contiguous array that is kept by this class*/
-	T* Add(entityId id);
+	Reference<T> Add(entityId id);
+
+	Reference<T> Add(Entity entity);
+
+	T* AddAfterUpdate(entityId id);
+
+	T* AddAfterUpdate(Entity entity);
 
 	/**
 	 * Removes the associated instance of type T from the array using a swap remove
 	 * This will invalidate the order of the array if it was sorted
 	 */
-	void Remove(entityId id);
+	void Remove(entityId id) override;
 
 	bool Contains(entityId id) override;
 
@@ -85,6 +126,12 @@ public:
 	/** Sets the element active*/
 	void SetActive(const T* element);
 
+	uint32_t GetTypeId() const override { return reflection::type_id<T>(); }
+
+	void SerializeView(std::ofstream& stream) override;
+
+	void DeserializeView(std::ifstream& stream) override;
+
 private:
 
 	VoidIterator GetVoidIterator() override;
@@ -92,7 +139,7 @@ private:
 	VoidIterator GetVoidIteratorEnd() override;
 
 	/** Creates a map between the id and the data and vice-versa*/
-	void AddMap(entityId id, T* data);
+	Reference<T> AddMap(entityId id, T* data);
 
 	/** Resizes the DataEntityMap and fills it with invalid ids*/
 	void ResizeDataEntityMap(size_t size);
@@ -114,29 +161,69 @@ private:
 
 	void SetViewDataFlag(ViewDataFlag flag);
 
+	void SwapPositions(size_t pos0, size_t pos1);
+
 	void SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit) override;
+
+	size_t GetPositionInArray(entityId id) const;
+	size_t GetPositionInArray(const T* data) const;
 
 private:
 
 	std::vector<T> m_Data;
 	std::unordered_map<entityId, ReferencePointer<T>*> m_EntityDataReferences;
 
-	ReferencePointer<T> m_InvalidReference{ nullptr };
-
 	std::function<bool(const T&, const T&)> m_SortingAlgorithm;
 
-	/** Amount of active items inside of the array*/
+	/** Amount of inactive items inside of the array*/
 	size_t m_InactiveItems{};
 
 	ObjectPoolAllocator<ReferencePointer<T>> m_ReferencePool;
 
+	std::vector<ReferencePointer<T>*> m_PendingDeleteReferences;
+
+	std::vector<std::pair<entityId, T>> m_AddedEntitiesUpdate;
+
+private:
+
+	inline static RegisterClass<T> ClassInfoGen;
+
 };
+
+template <typename T>
+void TypeView<T>::Update()
+{
+	const size_t size = m_PendingDeleteReferences.size();
+	for (size_t i{}; i < size; ++i)
+	{
+		auto ref = m_PendingDeleteReferences[size - i - 1];
+		if (ref->GetReferencesAmount() == 0)
+		{
+			m_ReferencePool.deallocate(ref);
+			m_PendingDeleteReferences[size - i - 1] = m_PendingDeleteReferences.back();
+			m_PendingDeleteReferences.pop_back();
+		}
+	}
+
+	for (auto& entity : m_AddedEntitiesUpdate)
+	{
+		Add(entity.first, std::move(entity.second));
+	}
+	m_AddedEntitiesUpdate.clear();
+}
 
 template <typename T>
 entityId TypeView<T>::GetId(const T* element) const
 {
 	assert(m_Data.data() - element < m_Data.size());
 	return m_DataEntityMap[m_Data.data() - element];
+}
+
+template <typename T>
+entityId TypeView<T>::GetEntityId(const void* elementAddress)
+{
+	const T* element = static_cast<const T*>(elementAddress);
+	return GetEntityId(element);
 }
 
 template <typename T>
@@ -147,55 +234,88 @@ Reference<T> TypeView<T>::Get(entityId id) const
 	{
 		return *it->second;
 	}
-	return m_InvalidReference;
+	return Reference<T>::InvalidRef();
 }
 
 template <typename T>
 VoidReference TypeView<T>::GetVoidReference(entityId id) const
 {
-	return VoidReference(static_cast<const void*>(&Get(id).GetReferencePointer()));
+	return VoidReference(static_cast<void*>(&Get(id).GetReferencePointer()));
 }
 
 template <typename T>
-T* TypeView<T>::Add(entityId id, const T& data)
+Reference<T> TypeView<T>::Add(entityId id, const T& data)
 {
 	CheckDataSize();
 	T* element = &m_Data.emplace_back(data);
-	AddMap(id, element);
+	auto ref = AddMap(id, element);
 	for (auto& callback : OnElementAdd)
 		callback(this, id);
 
 	SetViewDataFlag(ViewDataFlag::dirty);
 
-	return element;
+	if constexpr (Initializable<T>)
+	{
+		*element.Initialize(GetRegistry());
+	}
+
+	return ref;
 }
 
 template <typename T>
-T* TypeView<T>::Add(entityId id, T&& data)
+Reference<T> TypeView<T>::Add(entityId id, T&& data)
 {
 	CheckDataSize();
-	T* element = &m_Data.emplace_back(data);
-	AddMap(id, element);
+	T* element = &m_Data.emplace_back(std::move(data));
+	auto ref = AddMap(id, element);
 	for (auto& callback : OnElementAdd)
 		callback(this, id);
 
 	SetViewDataFlag(ViewDataFlag::dirty);
 
-	return element;
+	if constexpr (Initializable<T>)
+	{
+		*element.Initialize(GetRegistry());
+	}
+
+	return ref;
 }
 
 template <typename T>
-T* TypeView<T>::Add(entityId id)
+Reference<T> TypeView<T>::Add(entityId id)
 {
 	CheckDataSize();
 	T* element = &m_Data.emplace_back();
-	AddMap(id, element);
+	auto ref = AddMap(id, element);
 	for (auto& callback : OnElementAdd)
 		callback(this, id);
 
 	SetViewDataFlag(ViewDataFlag::dirty);
 
-	return element;
+	if constexpr (Initializable<T>)
+	{
+		*element.Initialize(GetRegistry());
+	}
+
+	return ref;
+}
+
+template <typename T>
+Reference<T> TypeView<T>::Add(Entity entity)
+{
+	return Add(entity.GetId());
+}
+
+template <typename T>
+T* TypeView<T>::AddAfterUpdate(entityId id)
+{
+	return &m_AddedEntitiesUpdate.emplace_back(id, T()).second;
+}
+
+template <typename T>
+T* TypeView<T>::AddAfterUpdate(Entity entity)
+{
+	return AddAfterUpdate(entity.GetId());
 }
 
 template <typename T>
@@ -207,13 +327,17 @@ void TypeView<T>::Remove(entityId id)
 		size_t pos = it->second->m_ptr - m_Data.data();
 
 		// swap remove
-		m_Data[pos] = m_Data.back();
+		m_Data[pos] = std::move(m_Data.back());
 		m_Data.pop_back();
 
 		for (auto& callback : OnElementRemove)
 			callback(this, id);
 
-		m_ReferencePool.deallocate(it->second);
+		// deallocate if no references to the element exists
+		if (it->second->GetReferencesAmount() == 0)
+			m_ReferencePool.deallocate(it->second);
+		else
+			m_PendingDeleteReferences.push_back(it->second);
 
 		m_EntityDataReferences.erase(it);
 
@@ -225,6 +349,71 @@ template <typename T>
 bool TypeView<T>::Contains(entityId id)
 {
 	return (m_EntityDataReferences.contains(id));
+}
+
+template <typename T>
+void TypeView<T>::SetInactive(entityId id)
+{
+	assert(m_EntityDataReferences.contains(id));
+	SwapPositions( GetActiveAmount() - 1, GetPositionInArray(id));
+	++m_InactiveItems;
+}
+
+template <typename T>
+void TypeView<T>::SetInactive(const T* element)
+{
+	SwapPositions(GetActiveAmount() - 1, GetPositionInArray(element));
+	++m_InactiveItems;
+}
+
+template <typename T>
+void TypeView<T>::SetActive(entityId id)
+{
+	assert(m_EntityDataReferences.contains(id));
+	SwapPositions(GetActiveAmount(), GetPositionInArray(id));
+	--m_InactiveItems;
+}
+
+template <typename T>
+void TypeView<T>::SetActive(const T* element)
+{
+	SwapPositions(GetActiveAmount(), GetPositionInArray(element));
+	--m_InactiveItems;
+}
+
+template <typename T>
+void TypeView<T>::SerializeView(std::ofstream& stream)
+{
+	stream << GetSize();
+	stream.write(reinterpret_cast<const char*>(m_DataEntityMap.data()), GetSize() * sizeof(entityId));
+
+	if constexpr ( Streamable<T> )
+		for (auto& element : m_Data)
+			element.Serialize(stream);
+	else
+		stream.write(reinterpret_cast<const char*>(m_Data.data()), m_Data.size() * sizeof(T));
+	
+}
+
+template <typename T>
+void TypeView<T>::DeserializeView(std::ifstream& stream)
+{
+	assert(GetSize() == 0);
+
+	size_t size{};
+	stream >> size;
+
+	ResizeDataEntityMap(size);
+	m_Data.resize(size);
+
+	stream.read(reinterpret_cast<char*>(m_DataEntityMap.data()), size * sizeof(entityId));
+
+	if constexpr ( Streamable<T> )
+		for (auto& element : m_Data)
+			element.Deserialize(stream);
+	else
+		stream.read(reinterpret_cast<char*>(m_Data.data()), size * sizeof(T));
+
 }
 
 template <typename T>
@@ -240,7 +429,7 @@ VoidIterator TypeView<T>::GetVoidIteratorEnd()
 }
 
 template <typename T>
-void TypeView<T>::AddMap(entityId id, T* data)
+Reference<T> TypeView<T>::AddMap(entityId id, T* data)
 {
 	size_t pos = GetPosition(data);
 
@@ -253,6 +442,8 @@ void TypeView<T>::AddMap(entityId id, T* data)
 	// insert into data entity map
 	CheckDataEntityMap(pos);
 	m_DataEntityMap[pos] = id;
+
+	return Reference<T>(reference);
 }
 
 template <typename T>
@@ -274,14 +465,14 @@ template <typename T>
 void TypeView<T>::ResizeData()
 {
 	T* originalLoc = m_Data.data();
-	m_Data.reserve(m_Data.size() * 2);
+	m_Data.reserve(m_Data.empty() ? 4 : (m_Data.size() * 2));
 	T* newLoc = m_Data.data();
 
-	auto difference = newLoc - originalLoc;
+	const int64_t difference = reinterpret_cast<int8_t*>(newLoc) - reinterpret_cast<int8_t*>(originalLoc);
 
 	for (auto& reference : m_EntityDataReferences)
 	{
-		reference.second->m_ptr += difference;
+		reference.second->m_ptr = reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(reference.second->m_ptr) + difference);
 	}
 }
 
@@ -330,6 +521,7 @@ void TypeView<T>::SetViewDataFlag(ViewDataFlag flag)
 		if (m_SortingAlgorithm)
 		{
 			m_DataFlag = ViewDataFlag::dirty;
+			++m_DataFlagId;
 		}
 		break;/*
 	case ViewDataFlag::invalid:
@@ -340,6 +532,20 @@ void TypeView<T>::SetViewDataFlag(ViewDataFlag flag)
 		}
 		break;*/
 	}
+}
+
+template <typename T>
+void TypeView<T>::SwapPositions(size_t pos0, size_t pos1)
+{
+	assert(pos0 < GetSize());
+	assert(pos1 < GetSize());
+	if (pos0 == pos1) return;
+
+	std::swap(m_Data[pos0], m_Data[pos1]);
+	std::swap(m_EntityDataReferences[pos0]->m_ptr, m_EntityDataReferences[pos1]->m_ptr);
+	std::swap(m_DataEntityMap[pos0], m_DataEntityMap[pos1]);
+
+	SetViewDataFlag(ViewDataFlag::dirty);
 }
 
 template <typename T>
@@ -399,5 +605,20 @@ void TypeView<T>::SortData(volatile SortingProgress& sortingProgress, const vola
 		std::cerr << e.what();
 		sortingProgress = SortingProgress::canceled;
 	}
+}
+
+template <typename T>
+size_t TypeView<T>::GetPositionInArray(entityId id) const
+{
+	assert(m_EntityDataReferences.contains(id));
+	auto ref = m_EntityDataReferences.find(id);
+	return GetPositionInArray(ref->second->m_ptr);
+}
+
+template <typename T>
+size_t TypeView<T>::GetPositionInArray(const T* data) const
+{
+	assert(data <= &m_Data.back() && data >= &m_Data.front());
+	return data - &m_Data.front();
 }
 

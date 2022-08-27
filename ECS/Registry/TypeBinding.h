@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <iterator>
+#include <unordered_map>
 
 #include "TypeViewBase.h"
 #include "../TypeInformation/reflection.h"
@@ -67,6 +68,46 @@ public:
 		VoidReference operator[](size_t index) const { return m_Data[index]; }
 
 		VoidReference& operator[](size_t index) { return m_Data[index]; }
+
+		void ApplyFunction(const std::function<void(Types&...)>& function)
+		{
+			if constexpr (sizeof...(Types) == 2)
+			{
+				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get());
+			}
+			else if constexpr (sizeof...(Types) == 3)
+			{
+				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get());
+			}
+			else if constexpr (sizeof...(Types) == 4)
+			{
+				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get());
+			}
+			else if constexpr (sizeof...(Types) == 5)
+			{
+				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get());
+			}
+			else if constexpr (sizeof...(Types) == 6)
+			{
+				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get(),
+							*Get<std::tuple_element_t<5, std::tuple<Types...>>>().get());
+			}
+			static_assert(sizeof...(Types) <= 6, "Please expand this sequence");
+		}
 
 	private:
 		std::array<VoidReference, sizeof...(Types)> m_Data;
@@ -133,11 +174,16 @@ private:
 		return GetTypePosCompare<T, Types...>(0);
 	}
 
+	bool Contains(entityId id) const { return m_ContainedEntities.contains(id); }
+
 private:
 
 	std::vector<BindingView> m_Data;
 	
 	std::array<uint32_t, sizeof...(Types)> m_typeIds;
+
+	// entity and offset from m_typeIds.data()
+	std::unordered_map<entityId, size_t> m_ContainedEntities;
 
 	EntityRegistry& m_Registry;
 

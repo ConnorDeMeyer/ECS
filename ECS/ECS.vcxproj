@@ -78,6 +78,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -94,6 +95,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -110,6 +112,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,6 +129,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -143,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocators\ObjectPoolAllocator.h" />
+    <ClInclude Include="Entity\GameObject.h" />
     <ClInclude Include="Sorting\SmoothSort.h" />
     <ClInclude Include="GameComponent\GameComponent.h" />
     <ClInclude Include="Registry\EntityRegistry.h" />
@@ -152,10 +157,15 @@
     <ClInclude Include="Registry\TypeView.h" />
     <ClInclude Include="Registry\TypeViewBase.h" />
     <ClInclude Include="Sorting\SorterThreadPool.h" />
+    <ClInclude Include="System\System.h" />
+    <ClInclude Include="System\SystemBase.h" />
     <ClInclude Include="TestClasses\gameComponentTest.h" />
     <ClInclude Include="TestClasses\Render.h" />
+    <ClInclude Include="TestClasses\RenderingSystem.h" />
     <ClInclude Include="TestClasses\Transform.h" />
+    <ClInclude Include="TypeInformation\TypeInfoGenerator.h" />
     <ClInclude Include="TypeInformation\reflection.h" />
+    <ClInclude Include="TypeInformation\TypeInformation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
