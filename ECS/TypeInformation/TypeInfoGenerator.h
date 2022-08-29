@@ -37,4 +37,5 @@ private:
 			TypeInformation::AddBaseChildConnection<Base, Child>();
 		}
 	};
+	inline static ChildInformationGenerator Generator{};
 };

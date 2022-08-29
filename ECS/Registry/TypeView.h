@@ -41,13 +41,13 @@ class TypeView : public TypeViewBase
 {
 public:
 
-	TypeView(EntityRegistry* registry) : TypeViewBase(registry)
+	TypeView(EntityRegistry* pRegistry) : TypeViewBase(pRegistry)
 	{
 		if constexpr (Sortable<T>) {
 			m_SortingAlgorithm = std::function<bool(const T&, const T&)>(static_cast<bool (*)(const T&, const T&)>(&SortCompare));
 		}
 	}
-	virtual ~TypeView() = default;
+	~TypeView() override = default;
 
 	TypeView(const TypeView&) = delete;
 	TypeView(TypeView&&) = delete;
@@ -106,10 +106,10 @@ public:
 	const T* GetData() const { return m_Data.data(); }
 
 	/** Returns the start iterator of the data*/
-	auto begin() { return m_Data.begin(); }
+	auto begin() { return VoidIteratorType<T>(m_Data.data(), m_ElementSize); }
 
 	/** Returns the end of the iterator without inactive items*/
-	auto end() { return m_Data.end() - m_InactiveItems; }
+	auto end() { return VoidIteratorType<T>(m_Data.data() + m_Data.size(), m_ElementSize) - m_InactiveItems; }
 
 	/** Returns the end of the array, including the inactive items*/
 	auto arrayEnd() { return m_Data.end(); }
@@ -153,10 +153,7 @@ private:
 
 	/** Removes an element by swapping the last one with the element and popping the back*/
 	void SwapRemove(size_t pos);
-
-	/** Returns the position of the element inside of the Data array*/
-	size_t GetPosition(T* element);
-
+	
 	void ChangeMapping(size_t oldPos, size_t newPos);
 
 	void SetViewDataFlag(ViewDataFlag flag);
@@ -166,6 +163,8 @@ private:
 	void SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit) override;
 
 	size_t GetPositionInArray(entityId id) const;
+
+	/** Returns the position of the element inside of the Data array*/
 	size_t GetPositionInArray(const T* data) const;
 
 private:
@@ -183,6 +182,8 @@ private:
 	std::vector<ReferencePointer<T>*> m_PendingDeleteReferences;
 
 	std::vector<std::pair<entityId, T>> m_AddedEntitiesUpdate;
+
+	const size_t m_ElementSize{ sizeof(T) };
 
 private:
 
@@ -223,7 +224,7 @@ template <typename T>
 entityId TypeView<T>::GetEntityId(const void* elementAddress)
 {
 	const T* element = static_cast<const T*>(elementAddress);
-	return GetEntityId(element);
+	return m_DataEntityMap[GetPositionInArray(element)];
 }
 
 template <typename T>
@@ -431,7 +432,7 @@ VoidIterator TypeView<T>::GetVoidIteratorEnd()
 template <typename T>
 Reference<T> TypeView<T>::AddMap(entityId id, T* data)
 {
-	size_t pos = GetPosition(data);
+	size_t pos = GetPositionInArray(data);
 
 	auto reference = m_ReferencePool.allocate();
 	reference->m_ptr = data;
@@ -492,14 +493,6 @@ void TypeView<T>::SwapRemove(size_t pos)
 	m_Data.pop_back();
 	
 	ChangeMapping(m_Data.size(), pos);
-}
-
-template <typename T>
-size_t TypeView<T>::GetPosition(T* element)
-{
-	size_t pos = element - &*m_Data.begin();
-	assert(pos < m_Data.size());
-	return pos;
 }
 
 template <typename T>
@@ -621,4 +614,3 @@ size_t TypeView<T>::GetPositionInArray(const T* data) const
 	assert(data <= &m_Data.back() && data >= &m_Data.front());
 	return data - &m_Data.front();
 }
-

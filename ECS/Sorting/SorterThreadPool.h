@@ -10,14 +10,14 @@ class ThreadPool
 {
 public:
 
-	static constexpr uint32_t MaxThreads{ 8 };
-
-	ThreadPool();
+	ThreadPool(const size_t threadAmount);
 	~ThreadPool();
 
 	void AddFunction(const std::function<void()>& function);
 
 	const volatile bool& GetQuitBool() const { return m_Quit; }
+
+	void QuitAndWait();
 
 private:
 
@@ -25,8 +25,8 @@ private:
 
 private:
 
-	std::array<std::jthread, MaxThreads> m_Threads;
-	std::array<std::function<void()>, MaxThreads> m_Functions;
+	std::vector<std::jthread> m_Threads;
+	std::vector<std::function<void()>> m_Functions;
 
 	std::mutex m_StartThreadLock;
 

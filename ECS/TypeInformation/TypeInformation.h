@@ -7,7 +7,10 @@
 #include "reflection.h"
 
 template <typename To, typename From>
-static To* Cast(From* ptr);
+static To* Cast(const From* ptr);
+
+template <typename To, typename From>
+static To& Cast(const From& ref);
 
 namespace TypeInformation
 {
@@ -30,6 +33,10 @@ namespace TypeInformation
 
 	template <typename Base, typename Child>
 	static void AddBaseChildConnection();
+
+	[[nodiscard]] std::vector<uint32_t> GetSubClasses(uint32_t typeId);
+
+	[[nodiscard]] std::vector<uint32_t> GetTypeCombinations(const uint32_t* typeIds, const size_t size, size_t combinationSize);
 
 	//template <typename T>
 	//static bool IsSubClass(uint32_t baseClass, T* classInstance);
@@ -62,6 +69,97 @@ inline const TypeInformation::Info& TypeInformation::GetTypeInfo(uint32_t typeId
 {
 	assert(Data::TypeInformation.contains(typeId));
 	return Data::TypeInformation[typeId];
+}
+
+[[nodiscard]] inline std::vector<uint32_t> TypeInformation::GetSubClasses(uint32_t typeId)
+{
+	std::vector<uint32_t> subClasses;
+	size_t processedCounter{};
+
+	for (auto& childId : Data::ClassHierarchy[typeId])
+		subClasses.emplace_back(childId);
+
+	while (subClasses.size() != processedCounter)
+	{
+		for (auto& childId : Data::ClassHierarchy[subClasses[processedCounter]])
+		{
+			subClasses.emplace_back(childId);
+		}
+		++processedCounter;
+	}
+
+	return subClasses;
+}
+
+//constexpr size_t factorial(size_t num)
+//{
+//	return num ? 1 : factorial(num - 1) * num;
+//}
+//
+//constexpr size_t factorial_max(size_t max, size_t min)
+//{
+//	return max == min ? min : factorial_max(max - 1, min);
+//}
+
+//https://stackoverflow.com/questions/9330915/number-of-combinations-n-choose-r-in-c
+constexpr size_t nChoosek(size_t n, size_t k)
+{
+	if (k > n) return 0;
+	if (k * 2 > n) k = n - k;
+	if (k == 0) return 1;
+
+	size_t result = n;
+	for (size_t i = 2; i <= k; ++i) {
+		result *= (n - i + 1);
+		result /= i;
+	}
+	return result;
+}
+
+//https://www.geeksforgeeks.org/print-all-possible-combinations-of-r-elements-in-a-given-array-of-size-n/
+/* arr[] ---> Input Array
+data[] ---> Temporary array to
+store current combination
+start & end ---> Starting and
+Ending indexes in arr[]
+index ---> Current index in data[]
+r ---> Size of a combination to be printed */
+inline void CreateCombinationsRecursive(const uint32_t* arr, std::vector<uint32_t>& outData, 
+	uint32_t* data, size_t start, size_t end, size_t index, size_t r)
+{
+	// Current combination is ready
+	// to be printed, print it
+	if (index == r)
+	{
+		for (size_t i{ 0 }; i < r; ++i)
+			outData.push_back(data[i]);
+		return;
+	}
+
+	// replace index with all possible
+	// elements. The condition "end-i+1 >= r-index"
+	// makes sure that including one element
+	// at index will make a combination with
+	// remaining elements at remaining positions
+	for (size_t i{start}; i <= end && end - i + 1 >= r - index; ++i)
+	{
+		data[index] = arr[i];
+		CreateCombinationsRecursive(arr, outData, data, i + 1, end, index + 1, r);
+	}
+}
+
+
+[[nodiscard]] inline std::vector<uint32_t> TypeInformation::GetTypeCombinations(const uint32_t* typeIds, const size_t size, size_t combinationSize)
+{
+	size_t combinationAmount = nChoosek(size, combinationSize);
+	std::vector<uint32_t> types;
+	types.reserve(combinationAmount * combinationSize);
+
+	std::unique_ptr<uint32_t[]> data = std::make_unique<uint32_t[]>(combinationSize);
+
+	CreateCombinationsRecursive(typeIds, types, data.get(), 0, size - 1, 0, combinationSize);
+
+	return types;
 }
 
 template <typename T>
@@ -127,7 +225,7 @@ inline bool RecursiveParentSearch(uint32_t goal, uint32_t current)
 }
 
 template <typename To, typename From>
-To* Cast(From* ptr)
+To* Cast(const From* ptr)
 {
 	if (!ptr)
 		return static_cast<To*>(nullptr);
@@ -161,4 +259,10 @@ To* Cast(From* ptr)
 	}
 
 	return nullptr;
+}
+
+template <typename To, typename From>
+To& Cast(const From& ref)
+{
+	return *Cast<To, From>(&ref);
 }

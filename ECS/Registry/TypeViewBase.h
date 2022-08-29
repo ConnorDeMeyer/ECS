@@ -116,6 +116,9 @@ private:
 
 class VoidIterator final
 {
+	template <typename T>
+	friend class VoidIteratorType;
+
 public:
 	using iterator_category		= std::random_access_iterator_tag;
 	using value_type			= void*;
@@ -172,10 +175,61 @@ private:
 	size_t m_VariableSize{};
 };
 
+template <typename T>
+class VoidIteratorType final
+{
+public:
+	using iterator_category = std::random_access_iterator_tag;
+	using value_type = void*;
+	using difference_type = size_t;
+	using pointer = void*;
+	using reference = void*&;
+public:
+	VoidIteratorType(const VoidIteratorType&) = default;
+	VoidIteratorType(VoidIteratorType&&) = default;
+	VoidIteratorType& operator=(const VoidIteratorType&) = default;
+	VoidIteratorType& operator=(VoidIteratorType&&) = default;
+	~VoidIteratorType() = default;
+	VoidIteratorType(const VoidIterator& it) : m_VoidIterator(it) {}
+	VoidIteratorType(void* address, size_t elementSize) : m_VoidIterator(address, elementSize) {}
+	
+public:
+	bool operator==(const VoidIteratorType& rhs) const { return m_VoidIterator == rhs.m_VoidIterator; }
+	bool operator!=(const VoidIteratorType& rhs) const { return m_VoidIterator != rhs.m_VoidIterator; }
+	bool operator<( const VoidIteratorType& rhs) const { return m_VoidIterator < rhs.m_VoidIterator; }
+	bool operator>( const VoidIteratorType& rhs) const { return m_VoidIterator > rhs.m_VoidIterator; }
+	bool operator<=(const VoidIteratorType& rhs) const { return m_VoidIterator <= rhs.m_VoidIterator; }
+	bool operator>=(const VoidIteratorType& rhs) const { return m_VoidIterator >= rhs.m_VoidIterator; }
+
+	T& operator*() { return *static_cast<T*>(m_VoidIterator.m_ptr); }
+	const T& operator*() const { return *static_cast<T*>(m_VoidIterator.m_ptr); }
+	T& operator->() { return *static_cast<T*>(m_VoidIterator.m_ptr); }
+
+	VoidIteratorType& operator++() { ++m_VoidIterator; return *this; }
+	VoidIteratorType& operator--() { --m_VoidIterator; return *this; }
+	VoidIteratorType operator++(int) { return m_VoidIterator++; }
+	VoidIteratorType operator--(int) { return m_VoidIterator--; }
+
+	VoidIteratorType& operator+=(size_t rhs) { return m_VoidIterator+=rhs; }
+	VoidIteratorType& operator-=(size_t rhs) { return m_VoidIterator+=rhs; }
+
+	VoidIteratorType operator+(size_t rhs) { return m_VoidIterator + rhs; }
+	VoidIteratorType operator-(size_t rhs) { return m_VoidIterator - rhs; }
+	//VoidIterator operator+(const VoidIterator& rhs) { return VoidIterator{ m_ptr + rhs.m_ptr }; }
+	//VoidIterator operator-(const VoidIterator& rhs) { return VoidIterator{ m_ptr - rhs.m_ptr }; }
+
+	T* operator[](size_t offset) const { return m_VoidIterator[offset]; }
+
+private:
+	VoidIterator m_VoidIterator;
+};
+
 class EntityRegistry;
 
 class TypeViewBase
 {
+	friend class EntityRegistry;
+
 public:
 
 	TypeViewBase(EntityRegistry* registry) : m_pRegistry(registry) { }

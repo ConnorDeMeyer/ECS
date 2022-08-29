@@ -141,7 +141,6 @@
   <ItemGroup>
     <ClCompile Include="Allocators\ObjectPoolAllocator.cpp" />
     <ClCompile Include="ECS.cpp" />
-    <ClCompile Include="GameComponent\GameComponent.cpp" />
     <ClCompile Include="Registry\EntityRegistry.cpp" />
     <ClCompile Include="Sorting\SorterThreadPool.cpp" />
   </ItemGroup>
@@ -149,7 +148,6 @@
     <ClInclude Include="Allocators\ObjectPoolAllocator.h" />
     <ClInclude Include="Entity\GameObject.h" />
     <ClInclude Include="Sorting\SmoothSort.h" />
-    <ClInclude Include="GameComponent\GameComponent.h" />
     <ClInclude Include="Registry\EntityRegistry.h" />
     <ClInclude Include="Entity\Entity.h" />
     <ClInclude Include="Registry\TypeBinding.h" />
@@ -163,6 +161,7 @@
     <ClInclude Include="TestClasses\Render.h" />
     <ClInclude Include="TestClasses\RenderingSystem.h" />
     <ClInclude Include="TestClasses\Transform.h" />
+    <ClInclude Include="TypeInformation\ECSTypeInformation.h" />
     <ClInclude Include="TypeInformation\TypeInfoGenerator.h" />
     <ClInclude Include="TypeInformation\reflection.h" />
     <ClInclude Include="TypeInformation\TypeInformation.h" />

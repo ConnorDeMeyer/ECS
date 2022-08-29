@@ -15,31 +15,29 @@
 #include "TypeView.h"
 #include "../System/System.h"
 
-using GameComponentClass = class GameComponent;
-
 class TypeBindingIdentifier final
 {
 public:
 
 	TypeBindingIdentifier() = default;
 
-	~TypeBindingIdentifier();
+	~TypeBindingIdentifier() = default;
 
 	TypeBindingIdentifier(const TypeBindingIdentifier&) = delete;
 	TypeBindingIdentifier& operator=(const TypeBindingIdentifier&) = delete;
 
-	TypeBindingIdentifier(TypeBindingIdentifier&& other) noexcept;
-	TypeBindingIdentifier& operator=(TypeBindingIdentifier&& other) noexcept;
+	TypeBindingIdentifier(TypeBindingIdentifier&& other) noexcept = default;
+	TypeBindingIdentifier& operator=(TypeBindingIdentifier&& other) noexcept = default;
 
 	template <typename... Types>
 	void Initialize(TypeBindingBase* TypeBinding)
 	{
-		m_TypeBinding = TypeBinding;
+		m_TypeBinding = std::unique_ptr<TypeBindingBase>(TypeBinding);
 		m_TypesAmount = sizeof...(Types);
-		m_TypesHashes = new uint32_t[m_TypesAmount];
+		m_TypesHashes = std::unique_ptr<uint32_t[]>(new uint32_t[m_TypesAmount]);
 
 		auto types = reflection::Type_ids<Types...>();
-		std::memcpy(m_TypesHashes, types.data(), sizeof(uint32_t) * m_TypesAmount);
+		std::memcpy(m_TypesHashes.get(), types.data(), sizeof(uint32_t) * m_TypesAmount);
 	}
 
 	template <typename... Types>
@@ -51,7 +49,6 @@ public:
 
 	bool Compare(const uint32_t* types, const size_t size);
 
-	TypeBindingBase* GetTypeBinding() const { return m_TypeBinding; }
 
 	bool Contains(uint32_t id);
 
@@ -61,16 +58,34 @@ public:
 		constexpr uint32_t Id{ reflection::type_id<Type>() };
 		return Contains(Id);
 	}
+	
+	TypeBindingBase* GetTypeBinding() const { return m_TypeBinding.get(); }
+	size_t GetTypesAmount() const { return m_TypesAmount; }
+	const uint32_t* GetTypeIds() const { return m_TypesHashes.get(); }
 
 private:
 
 	bool Assert(const uint32_t* types, const size_t size);
 	
 private:
-	TypeBindingBase*	m_TypeBinding{};
-	size_t				m_TypesAmount{};
-	uint32_t*			m_TypesHashes{};
+	std::unique_ptr<TypeBindingBase> m_TypeBinding{};
+	size_t m_TypesAmount{};
+	std::unique_ptr<uint32_t[]> m_TypesHashes{};
 
+};
+
+/** A reference version of TypeInfoIdentifier that can be passed around and copied without having to worry about it going out of scope*/
+struct TypeBindingIdentifierReference final
+{
+	TypeBindingIdentifierReference(const TypeBindingIdentifier& bindingId)
+		: TypeBinding(bindingId.GetTypeBinding())
+		, TypesAmount(bindingId.GetTypesAmount())
+		, TypeIds(bindingId.GetTypeIds())
+	{}
+
+	TypeBindingBase* TypeBinding;
+	size_t TypesAmount;
+	const uint32_t* TypeIds;
 };
 
 
@@ -79,7 +94,7 @@ class EntityRegistry final
 public:
 
 	EntityRegistry() = default;
-	~EntityRegistry() = default;
+	~EntityRegistry();
 
 	EntityRegistry(const EntityRegistry&)				= delete;
 	EntityRegistry(EntityRegistry&&)					= delete;
@@ -96,6 +111,9 @@ public:
 
 	template <typename System>
 	void AddSystem(const std::string& name, int32_t executionOrder = int32_t(ExecutionTime::Update)) requires std::is_base_of_v<SystemBase, System>;
+
+	template <typename System>
+	void AddSystem() requires std::is_base_of_v<SystemBase, System>;
 
 	void RemoveSystem(std::string name);
 
@@ -118,8 +136,6 @@ public:
 	[[nodiscard]] TypeBinding<Types...>& GetBinding();
 
 	[[nodiscard]] TypeBindingBase* GetBinding(const uint32_t* types, const size_t size);
-
-	void ForEachGameComponent(const std::function<void(GameComponentClass*)>& function);
 
 	void Update();
 
@@ -150,7 +166,11 @@ public:
 
 	template <typename T>
 	void RemoveComponent(Entity entity);
-	
+
+private:
+
+	void RegisterBinding(const TypeBindingIdentifier& identifier);
+
 private:
 
 	std::unordered_set<entityId> m_Entities;
@@ -172,8 +192,9 @@ private:
 private:
 
 	// sorting
-	inline static ThreadPool SortingThreadPool;
-	std::array<volatile SortingProgress, ThreadPool::MaxThreads> m_SortingProgress;
+	static constexpr size_t ThreadPoolSize{ 4 };
+	ThreadPool m_SortingThreadPool{ThreadPoolSize};
+	std::array<volatile SortingProgress, ThreadPoolSize> m_SortingProgress;
 
 };
 
@@ -196,19 +217,55 @@ void EntityRegistry::AddSystem(const std::string& name, const std::function<void
 	// Make sure the name is not in there already
 	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [name](const std::unique_ptr<SystemBase>& sys) {return sys->GetName() == name; }));
 
-	TypeView<Type>* view{};
-	auto it = m_TypeViews.find(reflection::type_id<Type>());
-	if (it == m_TypeViews.end())
-		view = reinterpret_cast<TypeView<Type>*>(&AddView<Type>());
-	else
 	{
-		TypeViewBase* viewBase = it->second.get();
-		view = reinterpret_cast<TypeView<Type>*>(viewBase);
+		TypeView<Type>* view{};
+		auto it = m_TypeViews.find(reflection::type_id<Type>());
+		if (it == m_TypeViews.end())
+			view = reinterpret_cast<TypeView<Type>*>(&AddView<Type>());
+		else
+		{
+			TypeViewBase* viewBase = it->second.get();
+			view = reinterpret_cast<TypeView<Type>*>(viewBase);
+		}
+
+		auto system = new ViewSystemDynamic<Type>{ name, view, function, executionOrder };
+
+		m_Systems.emplace(system);
 	}
 
-	auto system = new ViewSystemDynamic<Type>{ name, view, function, executionOrder };
+	//Add subsystems
+	std::vector<uint32_t> subClasses;
+	size_t processedCounter{};
 
-	m_Systems.emplace(system);
+	for (auto& childId : TypeInformation::Data::ClassHierarchy[reflection::type_id<Type>()])
+		subClasses.emplace_back(childId);
+
+	while (subClasses.size() != processedCounter)
+	{
+		for (auto& childId : TypeInformation::Data::ClassHierarchy[subClasses[processedCounter]])
+		{
+			subClasses.emplace_back(childId);
+		}
+		++processedCounter;
+	}
+
+	for (auto SubClassId : subClasses)
+	{
+		TypeView<Type>* view{};
+		auto it = m_TypeViews.find(SubClassId);
+		if (it == m_TypeViews.end())
+			view = reinterpret_cast<TypeView<Type>*>(&AddView<Type>());
+		else
+		{
+			TypeViewBase* viewBase = it->second.get();
+			view = reinterpret_cast<TypeView<Type>*>(viewBase);
+		}
+
+		auto typeName = TypeInformation::Data::TypeInformation[SubClassId].m_TypeName;
+		auto system = new ViewSystemDynamic<Type>{ name + "_" + std::string(typeName), view, function, executionOrder};
+
+		m_Systems.emplace(system);
+	}
 }
 
 template <typename ... Types>
@@ -233,6 +290,9 @@ void EntityRegistry::AddSystem(const std::string& name, const std::function<void
 }
 
 template <typename System>
+concept SystemSimpleConstructor = requires(System sys, TypeView<int> view) { System{ view }; };
+
+template <typename System>	
 void EntityRegistry::AddSystem(const std::string& name, int32_t executionOrder) requires std::is_base_of_v<SystemBase, System>
 {
 	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [name](const std::unique_ptr<SystemBase>& sys) {return sys->GetName() == name; }));
@@ -261,16 +321,42 @@ void EntityRegistry::AddSystem(const std::string& name, int32_t executionOrder) 
 	}
 }
 
+template <typename System>
+void EntityRegistry::AddSystem() requires std::is_base_of_v<SystemBase, System>
+{
+	if constexpr (isViewSystem<System>)
+	{
+		using T = System::ElementType;
+
+		TypeView<T>* view{};
+		auto it = m_TypeViews.find(reflection::type_id<T>());
+		if (it == m_TypeViews.end())
+			view = reinterpret_cast<TypeView<T>*>(&AddView<T>());
+		else
+			view = reinterpret_cast<TypeView<T>*>(&*it);
+
+		auto system = new System(view);
+		m_Systems.emplace(system);
+
+		assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [&system](const std::unique_ptr<SystemBase>& sys) {return sys->GetName() == system.GetName(); }));
+	}
+	else if constexpr (isBindingSystem<System>)
+	{
+		auto types = System::GetTypes();
+		TypeBindingBase* binding{ GetBinding(types.data(), types.size()) };
+
+		auto system = new System(System::ReinterpretCast(binding));
+		m_Systems.emplace(system);
+
+		assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [&system](const std::unique_ptr<SystemBase>& sys) {return sys->GetName() == system.GetName(); }));
+	}
+}
+
 template <typename T>
 TypeView<T>& EntityRegistry::AddView()
 {
 	auto view = new TypeView<T>(this);
 	m_TypeViews.emplace(reflection::type_id<T>(), view);
-
-	if constexpr (std::is_base_of_v<GameComponentClass, T>)
-	{
-		m_GameComponentTypeViews.push_back(view);
-	}
 
 	return *view;
 }
@@ -365,122 +451,13 @@ template <typename ... Types>
 TypeBinding<Types...>& EntityRegistry::AddBinding()
 {
 	auto binding = new TypeBinding<Types...>(*this);
-	{
-		TypeBindingIdentifier identifier{};
-		identifier.Initialize<Types...>(binding);
+	
+	TypeBindingIdentifier identifier{};
+	identifier.Initialize<Types...>(binding);
 
-		m_TypeBindings.emplace_back(std::move(identifier));
-	}
+	auto& bindingIdentifier = m_TypeBindings.emplace_back(std::move(identifier));
 
-	int32_t firstTypeId = binding->GetTypeId(0);
-	auto& view = m_TypeViews[firstTypeId];
-	auto& entities = view->GetRegisteredEntities();
-
-	for (auto entity : entities)
-	{
-		bool presentInAll{ true };
-
-		for (size_t i{ 1 }; i < binding->AmountOfTypes(); ++i)
-		{
-			auto typeId = binding->GetTypeId(i);
-			if (!m_TypeViews[typeId]->Contains(entity))
-			{
-				presentInAll = false;
-				break;
-			}
-		}
-
-		if (presentInAll)
-		{
-			binding->m_Data.emplace_back();
-			
-			size_t offset = &binding->m_Data.back() - binding->m_Data.data();
-			binding->m_ContainedEntities.emplace(entity, offset);
-
-			for (size_t i{ }; i < binding->AmountOfTypes(); ++i)
-			{
-				auto typeId = binding->GetTypeId(i);
-				auto& viewI = m_TypeViews[typeId];
-				auto voidReference = viewI->GetVoidReference(entity);
-				binding->m_Data.back()[i] = voidReference;
-			}
-		}
-	}
-
-	for (size_t i{ }; i < binding->AmountOfTypes(); ++i)
-	{
-		uint32_t typeId{ binding->GetTypeId(i) };
-		auto& typeViews{ m_TypeViews };
-		auto& viewI = m_TypeViews[typeId];
-
-		viewI->OnElementAdd.emplace_back([binding, &typeViews](TypeViewBase*, entityId id)
-			{
-				bool presentInAll{};
-
-				for (size_t i{ }; i < binding->AmountOfTypes(); ++i)
-				{
-					auto typeId = binding->GetTypeId(i);
-					if (!typeViews[typeId]->Contains(id))
-					{
-						return;
-					}
-
-					presentInAll = true;
-				}
-
-				if (presentInAll)
-				{
-					binding->m_Data.emplace_back();
-
-					size_t offset = &binding->m_Data.back() - binding->m_Data.data();
-					binding->m_ContainedEntities.emplace(id, offset);
-
-					for (size_t i{ }; i < binding->AmountOfTypes(); ++i)
-					{
-						auto typeId = binding->GetTypeId(i);
-						auto& viewI = typeViews[typeId];
-						auto voidReference = viewI->GetVoidReference(id);
-						binding->m_Data.back()[i] = voidReference;
-					}
-				}
-
-			});
-
-		viewI->OnElementRemove.emplace_back([binding, &typeViews](TypeViewBase*, entityId id)
-			{
-				auto it = binding->m_ContainedEntities.find(id);
-				if (it != binding->m_ContainedEntities.end())
-				{
-					// Get the position of the binding
-					size_t offset = it->second;
-
-					// If the element is already at the end
-					if (offset == binding->m_Data.size() - 1)
-					{
-						binding->m_Data.pop_back();
-					}
-					else
-					{
-						// use swap remove to remove the binding
-						// we need will also need to update the position in the m_ContainedEntities map
-						const auto elementAddress = binding->m_Data.back()[0].GetReferencePointer<void>().m_ptr;
-
-						const uint32_t typeId = binding->m_typeIds[0];
-						const entityId otherId = typeViews.find(typeId)->second->GetEntityId(elementAddress);
-
-						// update the position of the swapped element
-						assert(binding->m_ContainedEntities.contains(otherId));
-						binding->m_ContainedEntities[otherId] = offset;
-
-						// swap remove
-						binding->m_Data[offset] = std::move(binding->m_Data.back());
-						binding->m_Data.pop_back();
-					}
-
-					binding->m_ContainedEntities.erase(it);
-				}
-			});
-	}
+	RegisterBinding(bindingIdentifier);
 
 	return *binding;
 }

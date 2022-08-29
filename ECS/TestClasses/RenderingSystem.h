@@ -14,8 +14,8 @@ class RenderingSystem : public ViewSystem<Render>
 
 public:
 
-	RenderingSystem(const std::string& name, TypeView<Render>* view, int32_t executionOrder)
-		: ViewSystem(name, view, executionOrder)
+	RenderingSystem(TypeView<Render>* view)
+		: ViewSystem("RenderingSystem", view, int32_t(ExecutionTime::Render))
 	{
 		OrganizeData();
 	}

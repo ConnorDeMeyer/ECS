@@ -5,11 +5,14 @@
 
 using namespace std::chrono_literals;
 
-ThreadPool::ThreadPool()
+ThreadPool::ThreadPool(const size_t threadAmount)
 {
+	m_Threads.resize(threadAmount);
+	m_Functions.resize(threadAmount);
+
 	std::scoped_lock lock(m_StartThreadLock);
 
-	for (uint32_t i{}; i < MaxThreads; ++i)
+	for (uint32_t i{}; i < threadAmount; ++i)
 	{
 		m_Threads[i] = std::jthread(ThreadPool::StartThread, std::ref(m_Quit), std::ref(m_Functions[i]));
 	}
@@ -22,13 +25,24 @@ ThreadPool::~ThreadPool()
 
 void ThreadPool::AddFunction(const std::function<void()>& function)
 {
-	for (uint32_t i{}; i < MaxThreads; ++i)
+	for (uint32_t i{}; i < m_Threads.size(); ++i)
 	{
 		if (!m_Functions[i])
 		{
 			m_Functions[i] = function;
 			return;
 		}
+	}
+}
+
+void ThreadPool::QuitAndWait()
+{
+	m_Quit = true;
+	for (auto& thread : m_Threads)
+	{
+		while (true)
+			if (thread.joinable())
+				break;
 	}
 }
 

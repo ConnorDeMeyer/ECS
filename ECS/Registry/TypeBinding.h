@@ -30,24 +30,24 @@ private:
 		if constexpr (sizeof...(Ts) != 0)
 			return GetTypePosCompare<CompareT, Ts...>(++counter);
 		else
-			return size_t( -1 );
+			return size_t(-1);
 	}
 
 public:
 
 	/** Wrapper class for the std::array<void*, sizeof...(Types)>*/
-	class BindingView : TypeBindingBase
+	class BindingView final
 	{
 	public:
 		BindingView() = default;
-		BindingView(const std::array<VoidReference, sizeof...(Types)>& data) : m_Data{data} {}
-		BindingView(std::array<VoidReference, sizeof...(Types)>&& data) : m_Data{data} {}
+		BindingView(const std::array<VoidReference, sizeof...(Types)>& data) : m_Data{ data } {}
+		BindingView(std::array<VoidReference, sizeof...(Types)>&& data) : m_Data{ data } {}
 
-		BindingView(const BindingView&)					= default;
-		BindingView(BindingView&&) noexcept				= default;
-		BindingView& operator=(const BindingView&)		= default;
-		BindingView& operator=(BindingView&&) noexcept	= default;
-		virtual ~BindingView()							= default;
+		BindingView(const BindingView&) = default;
+		BindingView(BindingView&&) noexcept = default;
+		BindingView& operator=(const BindingView&) = default;
+		BindingView& operator=(BindingView&&) noexcept = default;
+		virtual ~BindingView() = default;
 
 	public:
 
@@ -73,38 +73,38 @@ public:
 		{
 			if constexpr (sizeof...(Types) == 2)
 			{
-				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get());
+				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get());
 			}
 			else if constexpr (sizeof...(Types) == 3)
 			{
-				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get());
+				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get());
 			}
 			else if constexpr (sizeof...(Types) == 4)
 			{
-				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get());
+				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get());
 			}
 			else if constexpr (sizeof...(Types) == 5)
 			{
-				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get());
+				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get());
 			}
 			else if constexpr (sizeof...(Types) == 6)
 			{
-				function(	*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get(),
-							*Get<std::tuple_element_t<5, std::tuple<Types...>>>().get());
+				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get(),
+					*Get<std::tuple_element_t<5, std::tuple<Types...>>>().get());
 			}
 			static_assert(sizeof...(Types) <= 6, "Please expand this sequence");
 		}
@@ -118,14 +118,14 @@ public:
 	TypeBinding(EntityRegistry& registry)
 		: m_Registry(registry)
 	{
-		FillTypeIds<Types...>(0);
+		m_typeIds = reflection::Type_ids<Types...>();
 	}
 
-	TypeBinding(const TypeBinding&)				= delete;
-	TypeBinding(TypeBinding&&)					= delete;
-	TypeBinding& operator=(const TypeBinding&)	= delete;
-	TypeBinding& operator=(TypeBinding&&)		= delete;
-	virtual ~TypeBinding()						= default;
+	TypeBinding(const TypeBinding&) = delete;
+	TypeBinding(TypeBinding&&) = delete;
+	TypeBinding& operator=(const TypeBinding&) = delete;
+	TypeBinding& operator=(TypeBinding&&) = delete;
+	~TypeBinding() override = default;
 
 public:
 
@@ -148,33 +148,68 @@ public:
 	auto begin() { return m_Data.begin(); }
 	auto end() { return m_Data.end(); }
 
+protected:
+	void AddEmptyData(size_t& outPos) override
+	{
+		m_Data.emplace_back();
+		outPos = m_Data.size() - 1;
+	}
+
+	void RegisterEntity(entityId entity, size_t offset) override
+	{
+		m_ContainedEntities.emplace(entity, offset);
+	}
+
+	void SetVoidReference(const VoidReference& ref, size_t bindingView, size_t viewPos) override
+	{
+		m_Data[bindingView][viewPos] = ref;
+	}
+
+	void RemoveId(entityId id) override
+	{
+		m_ContainedEntities.erase(id);
+	}
+
+	void SwapRemove(size_t offset, std::unordered_map<uint32_t, std::unique_ptr<TypeViewBase>>& typeViews) override
+	{
+		// If the element is already at the end
+		if (offset == m_Data.size() - 1)
+		{
+			m_Data.pop_back();
+		}
+		else
+		{
+			// use swap remove to remove the binding
+			// we need will also need to update the position in the m_ContainedEntities map
+			const auto elementAddress = m_Data.back()[0].GetReferencePointer<void>().m_ptr;
+
+			const uint32_t typeId = m_typeIds[0];
+			const entityId otherId = typeViews.find(typeId)->second->GetEntityId(elementAddress);
+
+			// update the position of the swapped element
+			assert(m_ContainedEntities.contains(otherId));
+			m_ContainedEntities[otherId] = offset;
+
+			// swap remove
+			m_Data[offset] = std::move(m_Data.back());
+			m_Data.pop_back();
+		}
+	}
+
+	bool Contains(entityId id) const override { return m_ContainedEntities.contains(id); }
+	bool Contains(entityId id, size_t& offset) const override
+	{
+		auto it = m_ContainedEntities.find(id);
+		if (it != m_ContainedEntities.end())
+		{
+			offset = it->second;
+			return true;
+		}
+		return false;
+	}
+
 private:
 
-	template <typename T, typename... Ts>
-	void FillTypeIds(size_t index)
-	{
-		m_typeIds[index] = reflection::type_id<T>();
-		if constexpr (sizeof...(Ts) != 0)
-			return FillTypeIds<Ts...>(++index);
-	}
-
-	/** Helper function for GetTypeId */
-	template <typename T, typename... Ts>
-	constexpr uint32_t GetTypeCounter(size_t count) const
-	{
-		if constexpr (sizeof...(Ts) != 0)
-			return (count) ? GetTypeCounter<Ts...>(--count) : reflection::type_id<T>();
-		else
-			return (count) ? 0 : reflection::type_id<T>();
-	}
-
-	template <typename T>
-	constexpr size_t GetTypePos() const
-	{
-		return GetTypePosCompare<T, Types...>(0);
-	}
-
-	bool Contains(entityId id) const { return m_ContainedEntities.contains(id); }
 
 private:
 

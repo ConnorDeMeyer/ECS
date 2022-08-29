@@ -22,12 +22,13 @@ int testFunc(float, int, double, GameCompTest2*)
 
 void test1();
 void test2();
+void test3();
 
 int main()
 {
     //test1();
     test2();
-
+    //test3();
 }
 
 void test1()
@@ -63,7 +64,7 @@ void test1()
     {
         transforms.Get(i)->position[0] = float(i);
     }
-
+    
     for (size_t i{}; i < renders.GetSize(); ++i)
     {
         renders.Get(i)->TextureId = (i);
@@ -131,12 +132,6 @@ void test1()
 
     std::cout << "GameComps\n";
 
-
-    registry.ForEachGameComponent([](GameComponent* comp)
-        {
-            comp->Initialize();
-        });
-
     renders.SetSortingPredicate([](const Render& rhs, const Render& lhs) {return rhs.TextureId > lhs.TextureId; });
 
     renders.Add(20);
@@ -163,6 +158,8 @@ void test2()
 
     registry.AddView<Render>();
     registry.AddView<Transform>();
+    registry.AddView<GameCompTest>();
+    registry.AddView<GameCompTest2>();
 
     registry.AddBinding<Render, Transform>();
 
@@ -176,6 +173,10 @@ void test2()
 	    transform.position[0] += 1.f;
     });
     registry.AddSystem<Render>("PrintRenderPos", [](Render& render) {std::cout << render.Transformation[0][0]; }, 2000);
+    registry.AddSystem<GameCompTest>("GameCompInitializer", [](GameCompTest& gameComp)
+    {
+            gameComp.Initialize();
+    });
 
     std::vector<GameObject> GameObjects;
     for (size_t i{}; i < 16; ++i)
@@ -183,6 +184,8 @@ void test2()
         auto& obj = GameObjects.emplace_back(registry);
         auto render = obj.AddComponent<Render>();
         obj.AddComponent<Transform>();
+        obj.AddComponent<GameCompTest>();
+        obj.AddComponent<GameCompTest2>();
         render->TextureId = i;
     }
 
@@ -200,5 +203,17 @@ void test2()
 
 
 
+}
+
+void test3()
+{
+    uint32_t types[] {1,2,3,4,5};
+    auto typesCombinations = TypeInformation::GetTypeCombinations(types, 5, 3);
+	for (size_t i{}; i < typesCombinations.size(); ++i)
+	{
+        if (i % 3 == 0)
+            std::cout << '\n';
+        std::cout << typesCombinations[i];
+	}
 }
 

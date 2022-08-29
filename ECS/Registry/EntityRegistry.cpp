@@ -1,35 +1,7 @@
 #include "EntityRegistry.h"
 
-#include "../GameComponent/GameComponent.h"
 #include "../TypeInformation/TypeInformation.h"
-
-TypeBindingIdentifier::~TypeBindingIdentifier()
-{
-	delete[] m_TypesHashes;
-	delete m_TypeBinding;
-}
-
-TypeBindingIdentifier::TypeBindingIdentifier(TypeBindingIdentifier&& other) noexcept
-	: m_TypeBinding{other.m_TypeBinding}
-	, m_TypesAmount{other.m_TypesAmount}
-	, m_TypesHashes{other.m_TypesHashes}
-{
-	other.m_TypesHashes = nullptr;
-	other.m_TypesAmount = 0;
-	other.m_TypeBinding = nullptr;
-}
-
-TypeBindingIdentifier& TypeBindingIdentifier::operator=(TypeBindingIdentifier&& other) noexcept
-{
-	m_TypeBinding = other.m_TypeBinding;
-	m_TypesAmount = other.m_TypesAmount;
-	m_TypesHashes = other.m_TypesHashes;
-
-	other.m_TypesHashes = nullptr;
-	other.m_TypesAmount = 0;
-	other.m_TypeBinding = nullptr;
-	return *this;
-}
+#include "../TypeInformation/ECSTypeInformation.h"
 
 bool TypeBindingIdentifier::Compare(const uint32_t* types, const size_t size)
 {
@@ -64,6 +36,15 @@ bool TypeBindingIdentifier::Assert(const uint32_t* types, const size_t size)
 			return false;
 	}
 	return true;
+}
+
+EntityRegistry::~EntityRegistry()
+{
+	for (size_t i{}; i < m_SortingProgress.size(); ++i)
+	{
+		m_SortingProgress[i] = SortingProgress::canceled;
+	}
+	m_SortingThreadPool.QuitAndWait();
 }
 
 void EntityRegistry::RemoveSystem(std::string name)
@@ -108,6 +89,100 @@ const Entity EntityRegistry::CreateOrGetEntity(entityId id)
 	return Entity(*this, id);
 }
 
+void EntityRegistry::RegisterBinding(const TypeBindingIdentifier& identifier)
+{
+	auto binding = identifier.GetTypeBinding();
+
+	int32_t firstTypeId = identifier.GetTypeIds()[0];
+	auto& view = m_TypeViews[firstTypeId];
+	auto& entities = view->GetRegisteredEntities();
+
+	for (auto entity : entities)
+	{
+		bool presentInAll{ true };
+
+		for (size_t i{ 1 }; i < identifier.GetTypesAmount(); ++i)
+		{
+			auto typeId = identifier.GetTypeIds()[i];
+			if (!m_TypeViews[typeId]->Contains(entity))
+			{
+				presentInAll = false;
+				break;
+			}
+		}
+
+		if (presentInAll)
+		{
+			size_t offset{};
+			binding->AddEmptyData(offset);
+			
+			binding->RegisterEntity(entity, offset);
+
+			for (size_t i{ }; i < identifier.GetTypesAmount(); ++i)
+			{
+				auto typeId = identifier.GetTypeIds()[i];
+				auto& viewI = m_TypeViews[typeId];
+				auto voidReference = viewI->GetVoidReference(entity);
+				binding->SetVoidReference(voidReference, offset, i);
+			}
+		}
+	}
+
+	TypeBindingIdentifierReference IdentifierRef{ identifier };
+
+	for (size_t i{ }; i < identifier.GetTypesAmount(); ++i)
+	{
+		uint32_t typeId{ identifier.GetTypeIds()[i] };
+		auto& typeViews{ m_TypeViews };
+		auto& viewI = m_TypeViews[typeId];
+
+		auto OnElementAddFunction = [IdentifierRef, &typeViews](TypeViewBase*, entityId id)
+		{
+			bool presentInAll{};
+
+			for (size_t i{ }; i < IdentifierRef.TypesAmount; ++i)
+			{
+				auto typeId = IdentifierRef.TypeIds[i];
+				if (!typeViews[typeId]->Contains(id))
+				{
+					return;
+				}
+
+				presentInAll = true;
+			}
+
+			if (presentInAll)
+			{
+				size_t offset{};
+				IdentifierRef.TypeBinding->AddEmptyData(offset);
+				IdentifierRef.TypeBinding->RegisterEntity(id, offset);
+
+				for (size_t i{ }; i < IdentifierRef.TypesAmount; ++i)
+				{
+					auto typeId = IdentifierRef.TypeIds[i];
+					auto& viewI = typeViews[typeId];
+					auto voidReference = viewI->GetVoidReference(id);
+					IdentifierRef.TypeBinding->SetVoidReference(voidReference, offset, i);
+				}
+			}
+		};
+
+		auto OnElementRemoveFunction = [IdentifierRef, &typeViews](TypeViewBase*, entityId id)
+		{
+			size_t offset{};
+			if (IdentifierRef.TypeBinding->Contains(id, offset))
+			{
+				IdentifierRef.TypeBinding->SwapRemove(offset, typeViews);
+
+				IdentifierRef.TypeBinding->RemoveId(id);
+			}
+		};
+
+		viewI->OnElementAdd.emplace_back(OnElementAddFunction);
+		viewI->OnElementRemove.emplace_back(OnElementRemoveFunction);
+	}
+}
+
 [[nodiscard]] TypeBindingBase* EntityRegistry::GetBinding(const uint32_t* types, const size_t size)
 {
 	for (auto& binding : m_TypeBindings)
@@ -117,37 +192,26 @@ const Entity EntityRegistry::CreateOrGetEntity(entityId id)
 	throw std::runtime_error("No Binding inside of this type inside of registry");
 }
 
-void EntityRegistry::ForEachGameComponent(const std::function<void(GameComponentClass*)>& function)
-{
-	for (auto view : m_GameComponentTypeViews)
-	{
-		for (auto it = view->GetVoidIterator(); it != view->GetVoidIteratorEnd(); ++it)
-		{
-			function(it.get<GameComponentClass>());
-		}
-	}
-}
-
 void EntityRegistry::Update()
 {
 	for (auto& typeView : m_TypeViews)
 	{
 		if (typeView.second->GetDataFlag() == ViewDataFlag::dirty)
 		{
-			for (size_t i{}; i < ThreadPool::MaxThreads; ++i)
+			for (size_t i{}; i < ThreadPoolSize; ++i)
 			{
 				auto& progress = m_SortingProgress[i];
 				if (progress == SortingProgress::none)
 				{
-					auto& quitBool{ SortingThreadPool.GetQuitBool() };
-					SortingThreadPool.AddFunction([&typeView, &progress, &quitBool] {typeView.second->SortData(progress, quitBool); });
+					auto& quitBool{ m_SortingThreadPool.GetQuitBool() };
+					m_SortingThreadPool.AddFunction([&typeView, &progress, &quitBool] {typeView.second->SortData(progress, quitBool); });
 					break;
 				}
 			}
 		}
 	}
 
-	for (size_t i{}; i < ThreadPool::MaxThreads; ++i)
+	for (size_t i{}; i < ThreadPoolSize; ++i)
 	{
 		auto& progress = m_SortingProgress[i];
 		switch (progress)

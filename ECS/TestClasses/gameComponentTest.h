@@ -1,10 +1,9 @@
 #pragma once
-#include "../GameComponent/GameComponent.h"
 
-class GameCompTest : public GameComponent
+class GameCompTest
 {
 public:
-	void Initialize() override
+	virtual void Initialize()
 	{
 		std::cout << "Initialized\n";
 	}
@@ -25,6 +24,8 @@ public:
 
 	int test{};
 };
+
+RegisterChildClass<GameCompTest, GameCompTest2> gamecomptest2;
 
 namespace GameCompTest2Name
 {
