@@ -25,6 +25,8 @@ public:
 	int test{};
 };
 
+RegisterClass<GameCompTest> gameCompReg;
+RegisterClass<GameCompTest2> gameComp2Reg;
 RegisterChildClass<GameCompTest, GameCompTest2> gamecomptest2;
 
 namespace GameCompTest2Name

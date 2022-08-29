@@ -27,6 +27,9 @@
     <ClCompile Include="Sorting\SorterThreadPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Registry\TypeBinding.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity\Entity.h">
@@ -51,9 +54,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Registry\TypeViewBase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Registry\TypeBindingBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Allocators\ObjectPoolAllocator.h">

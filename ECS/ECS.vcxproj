@@ -142,6 +142,7 @@
     <ClCompile Include="Allocators\ObjectPoolAllocator.cpp" />
     <ClCompile Include="ECS.cpp" />
     <ClCompile Include="Registry\EntityRegistry.cpp" />
+    <ClCompile Include="Registry\TypeBinding.cpp" />
     <ClCompile Include="Sorting\SorterThreadPool.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -151,7 +152,6 @@
     <ClInclude Include="Registry\EntityRegistry.h" />
     <ClInclude Include="Entity\Entity.h" />
     <ClInclude Include="Registry\TypeBinding.h" />
-    <ClInclude Include="Registry\TypeBindingBase.h" />
     <ClInclude Include="Registry\TypeView.h" />
     <ClInclude Include="Registry\TypeViewBase.h" />
     <ClInclude Include="Sorting\SorterThreadPool.h" />

@@ -7,6 +7,10 @@
 #include "../Entity/Entity.h"
 #include "../Registry/TypeViewBase.h"
 
+/** If a function exists called SortCompare that takes (const T&, const T&) as parameters, it will automatically set it as the sorting algorithm*/
+template <typename T>
+concept Sortable = requires(T val0, T val1) { SortCompare(val0, val1); };
+
 //https://en.wikibooks.org/wiki/Algorithm_Implementation/Sorting/Smoothsort
 
 class LeonardoNumber
@@ -71,14 +75,15 @@ private:
 *	@param concat: Standard concatenation's codification.
 *	@param number: Current Leonardo number.
 **/
-template <typename T, typename Predicate>
-inline void semitrinkle(T* pArray, entityId* entityMapping, size_t root, size_t concat, LeonardoNumber number, const Predicate& pred)
+template <typename T>
+inline void semitrinkle(T* pArray, entityId* entityMapping, size_t root, size_t concat, LeonardoNumber number)
 {
-	if (!pred(pArray[root - ~number], pArray[root]))
+
+	if (!SortCompare(pArray[root - ~number], pArray[root]))
 	{
 		std::swap(pArray[root], pArray[root - ~number]);
 		std::swap(entityMapping[root], entityMapping[root - ~number]);
-		trinkle<T>(pArray, entityMapping, root - ~number, concat, number, pred);
+		trinkle<T>(pArray, entityMapping, root - ~number, concat, number);
 	}
 }
 
@@ -90,14 +95,15 @@ inline void semitrinkle(T* pArray, entityId* entityMapping, size_t root, size_t 
 *   @param concat: Standard concatenation's codification.
 *   @param number: Current Leonardo number.
 **/
-template <typename T, typename Predicate>
-inline void trinkle(T* pArray, entityId* entityMapping, size_t root, size_t concat, LeonardoNumber number, const Predicate& pred)
+template <typename T>
+inline void trinkle(T* pArray, entityId* entityMapping, size_t root, size_t concat, LeonardoNumber number)
 {
+
 	while (concat)
 	{
 		for (; !(concat % 2); concat >>= 1)  ++number;
 
-		if (!--concat || !pred(pArray[root], pArray[root - number]))  break;
+		if (!--concat || !SortCompare(pArray[root], pArray[root - number]))  break;
 		else
 			if (number == 1)
 			{
@@ -110,12 +116,12 @@ inline void trinkle(T* pArray, entityId* entityMapping, size_t root, size_t conc
 			{
 				size_t r2 = root - number.gap(), r3 = root - number;
 
-				if (!pred(pArray[root - 1], pArray[r2]))
+				if (!SortCompare(pArray[root - 1], pArray[r2]))
 				{
 					r2 = root - 1; concat <<= 1; --number;
 				}
 
-				if (!pred(pArray[r3], pArray[r2]))
+				if (!SortCompare(pArray[r3], pArray[r2]))
 				{
 					std::swap(pArray[root], pArray[r3]);
 					std::swap(entityMapping[root], entityMapping[r3]);
@@ -131,7 +137,8 @@ inline void trinkle(T* pArray, entityId* entityMapping, size_t root, size_t conc
 			}
 	}
 
-	sift<T>(pArray, entityMapping, root, number, pred);
+	sift<T>(pArray, entityMapping, root, number);
+
 }
 
 /**
@@ -141,21 +148,21 @@ inline void trinkle(T* pArray, entityId* entityMapping, size_t root, size_t conc
 *   @param root: Index of the root of the array in question.
 *   @param number: Current Leonardo number.
 **/
-template <typename T, typename Predicate>
-inline void sift(T* pArray, entityId* entityMapping, size_t root, LeonardoNumber number, const Predicate& pred)
+template <typename T>
+inline void sift(T* pArray, entityId* entityMapping, size_t root, LeonardoNumber number)
 {
 	size_t r2;
 
 	while (number >= 3)
 	{
-		if (!pred(pArray[root - number.gap()], pArray[root - 1]))
+		if (!SortCompare(pArray[root - number.gap()], pArray[root - 1]))
 			r2 = root - number.gap();
 		else
 		{
 			r2 = root - 1; --number;
 		}
 
-		if (!pred(pArray[root], pArray[r2]))  break;
+		if (!SortCompare(pArray[root], pArray[r2]))  break;
 		else
 		{
 			std::swap(pArray[root], pArray[r2]);
@@ -165,48 +172,51 @@ inline void sift(T* pArray, entityId* entityMapping, size_t root, LeonardoNumber
 	}
 }
 
-template <typename T, typename Predicate>
-void SmoothSort(T* pArray, entityId* entityMapping, const volatile ViewDataFlag& viewFlag, size_t size, const Predicate& pred)
+template <typename T>
+void SmoothSort(T* pArray, entityId* entityMapping, const volatile ViewDataFlag& viewFlag, size_t size)
 {
-	if (!(pArray && size)) return;
-
-	size_t p = 1;
-	LeonardoNumber b;
-
-	for (size_t q = 0; ++q < size; ++p)
+	if constexpr (Sortable<T>)
 	{
-		if (viewFlag != ViewDataFlag::sorting)
-			return;
+		if (!(pArray && size)) return;
 
-		if ((p & 0b111) == 3)
+		size_t p = 1;
+		LeonardoNumber b;
+
+		for (size_t q = 0; ++q < size; ++p)
 		{
-			sift<T>(pArray, entityMapping, q - 1, b, pred);
+			if (viewFlag != ViewDataFlag::sorting)
+				return;
 
-			++++b; p >>= 2;
+			if ((p & 0b111) == 3)
+			{
+				sift<T>(pArray, entityMapping, q - 1, b);
+
+				++++b; p >>= 2;
+			}
+
+			else if ((p & 0b11) == 1)
+			{
+				if (q + ~b < size)  sift<T>(pArray, entityMapping, q - 1, b);
+				else  trinkle<T>(pArray, entityMapping, q - 1, p, b);
+
+				for (p <<= 1; --b > 1; p <<= 1);
+			}
 		}
+		trinkle<T>(pArray, entityMapping, size - 1, p, b);
 
-		else if ((p & 0b11) == 1)
-		{
-			if (q + ~b < size)  sift<T>(pArray, entityMapping, q - 1, b, pred);
-			else  trinkle<T>(pArray, entityMapping, q - 1, p, b, pred);
+		for (--p; size-- > 1; --p)
+			if (b == 1)
+				for (; !(p % 2); p >>= 1)  ++b;
 
-			for (p <<= 1; --b > 1; p <<= 1);
-		}
+			else if (b >= 3)
+			{
+				if (p)  semitrinkle<T>(pArray, entityMapping, size - b.gap(), p, b);
+
+				--b; p <<= 1; ++p;
+				semitrinkle<T>(pArray, entityMapping, size - 1, p, b);
+				--b; p <<= 1; ++p;
+			}
 	}
-	trinkle<T>(pArray, entityMapping, size - 1, p, b, pred);
-
-	for (--p; size-- > 1; --p)
-		if (b == 1)
-			for (; !(p % 2); p >>= 1)  ++b;
-
-		else if (b >= 3)
-		{
-			if (p)  semitrinkle<T>(pArray, entityMapping, size - b.gap(), p, b, pred);
-
-			--b; p <<= 1; ++p;
-			semitrinkle<T>(pArray, entityMapping, size - 1, p, b, pred);
-			--b; p <<= 1; ++p;
-		}
 }
 
 

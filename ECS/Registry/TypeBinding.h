@@ -1,281 +1,265 @@
 #pragma once
-#include <tuple>
-#include <array>
 #include <cassert>
-#include <iterator>
-#include <unordered_map>
+#include <memory>
+#include <tuple>
 
 #include "TypeViewBase.h"
-#include "../TypeInformation/reflection.h"
-#include "TypeBindingBase.h"
+#include "../Entity/Entity.h"
 
 class EntityRegistry;
 
-template<typename... Types>
-class TypeBinding final : public TypeBindingBase
+class TypeBinding final
 {
-	static_assert(sizeof...(Types) >= 2);
+public:
 
-	friend class EntityRegistry;
-
-private:
-
-	/** Function used to get the position of the Type inside of Types...*/
-	template <typename CompareT, typename T, typename... Ts>
-	static constexpr size_t GetTypePosCompare(size_t counter = 0)
+	template <typename... Types>
+	TypeBinding(EntityRegistry* pRegistry)
+		: m_pRegistry(pRegistry)
+		, m_pTypes(std::make_unique<uint32_t[]>(sizeof...(Types)))
+		, m_TypesAmount(sizeof...(Types))
 	{
-		if (reflection::type_id<T>() == reflection::type_id<CompareT>())
-			return counter;
+		static_assert(sizeof...(Types) >= 2);
 
-		if constexpr (sizeof...(Ts) != 0)
-			return GetTypePosCompare<CompareT, Ts...>(++counter);
-		else
-			return size_t(-1);
+		auto types = reflection::Type_ids<Types...>();
+		for (size_t i{}; i < types.size(); ++i)
+		{
+			m_pTypes[i] = types[i];
+		}
+		Initialize();
 	}
 
-public:
-
-	/** Wrapper class for the std::array<void*, sizeof...(Types)>*/
-	class BindingView final
+	TypeBinding(EntityRegistry* pRegistry, const uint32_t* types, size_t amount)
+		: m_pRegistry(pRegistry)
+		, m_pTypes(std::make_unique<uint32_t[]>(amount))
+		, m_TypesAmount(amount)
 	{
-	public:
-		BindingView() = default;
-		BindingView(const std::array<VoidReference, sizeof...(Types)>& data) : m_Data{ data } {}
-		BindingView(std::array<VoidReference, sizeof...(Types)>&& data) : m_Data{ data } {}
+		assert(amount >= 2);
 
-		BindingView(const BindingView&) = default;
-		BindingView(BindingView&&) noexcept = default;
-		BindingView& operator=(const BindingView&) = default;
-		BindingView& operator=(BindingView&&) noexcept = default;
-		virtual ~BindingView() = default;
-
-	public:
-
-		template <typename T>
-		Reference<T> Get() const
+		for (size_t i{}; i < amount; ++i)
 		{
-			constexpr size_t pos{ GetTypePosCompare<T, Types...>() };
-			assert(pos < sizeof...(Types));
-			auto& voidRef = m_Data[pos];
-			auto ref = voidRef.ToReference<T>();
-			return ref;
+			m_pTypes[i] = types[i];
 		}
-
-		VoidReference Get(size_t index) const { return m_Data[index]; }
-
-		VoidReference& Get(size_t index) { return m_Data[index]; }
-
-		VoidReference operator[](size_t index) const { return m_Data[index]; }
-
-		VoidReference& operator[](size_t index) { return m_Data[index]; }
-
-		void ApplyFunction(const std::function<void(Types&...)>& function)
-		{
-			if constexpr (sizeof...(Types) == 2)
-			{
-				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get());
-			}
-			else if constexpr (sizeof...(Types) == 3)
-			{
-				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get());
-			}
-			else if constexpr (sizeof...(Types) == 4)
-			{
-				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get());
-			}
-			else if constexpr (sizeof...(Types) == 5)
-			{
-				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get());
-			}
-			else if constexpr (sizeof...(Types) == 6)
-			{
-				function(*Get<std::tuple_element_t<0, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<1, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<2, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<3, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<4, std::tuple<Types...>>>().get(),
-					*Get<std::tuple_element_t<5, std::tuple<Types...>>>().get());
-			}
-			static_assert(sizeof...(Types) <= 6, "Please expand this sequence");
-		}
-
-	private:
-		std::array<VoidReference, sizeof...(Types)> m_Data;
-	};
-
-public:
-
-	TypeBinding(EntityRegistry& registry)
-		: m_Registry(registry)
-	{
-		m_typeIds = reflection::Type_ids<Types...>();
-	}
-
-	TypeBinding(const TypeBinding&) = delete;
-	TypeBinding(TypeBinding&&) = delete;
-	TypeBinding& operator=(const TypeBinding&) = delete;
-	TypeBinding& operator=(TypeBinding&&) = delete;
-	~TypeBinding() override = default;
-
-public:
-
-	constexpr uint32_t GetTypeId(size_t index)
-	{
-		return m_typeIds[index];
+		Initialize();
 	}
 
 	template <typename T>
-	T* Get(size_t index)
+	size_t GetTypePos() const
 	{
-		return m_Data[index].Get<T>();
+		return GetTypePos(reflection::type_id<T>());
 	}
 
-	constexpr size_t AmountOfTypes() const
+	size_t GetTypePos(uint32_t typeId) const
 	{
-		return sizeof...(Types);
+		for (size_t i{}; i < m_TypesAmount; ++i)
+			if (m_pTypes[i] == typeId)
+				return i;
+		return std::numeric_limits<uint32_t>::max();
 	}
 
-	auto begin() { return m_Data.begin(); }
-	auto end() { return m_Data.end(); }
-
-protected:
-	void AddEmptyData(size_t& outPos) override
+	size_t GetEntityPos(entityId id) const
 	{
-		m_Data.emplace_back();
-		outPos = m_Data.size() - 1;
+		assert(m_ContainedEntities.contains(id));
+		return m_ContainedEntities.find(id)->first;
 	}
 
-	void RegisterEntity(entityId entity, size_t offset) override
+	const VoidReference& Get(size_t typePos, size_t elementPos) const
 	{
-		m_ContainedEntities.emplace(entity, offset);
+		return m_Data[elementPos * m_TypesAmount + typePos];
 	}
 
-	void SetVoidReference(const VoidReference& ref, size_t bindingView, size_t viewPos) override
+	const VoidReference& GetWithTypeId(uint32_t typeId, size_t elementPos) const
 	{
-		m_Data[bindingView][viewPos] = ref;
+		return Get(GetTypePos(typeId), elementPos);
 	}
 
-	void RemoveId(entityId id) override
+	const VoidReference& GetEntity(size_t typePos, entityId id) const
 	{
-		m_ContainedEntities.erase(id);
+		return Get(typePos, GetEntityPos(id));
 	}
 
-	void SwapRemove(size_t offset, std::unordered_map<uint32_t, std::unique_ptr<TypeViewBase>>& typeViews) override
+	const VoidReference& GetEntityWithTypeId(uint32_t typeId, entityId id) const
 	{
-		// If the element is already at the end
-		if (offset == m_Data.size() - 1)
-		{
-			m_Data.pop_back();
-		}
-		else
-		{
-			// use swap remove to remove the binding
-			// we need will also need to update the position in the m_ContainedEntities map
-			const auto elementAddress = m_Data.back()[0].GetReferencePointer<void>().m_ptr;
-
-			const uint32_t typeId = m_typeIds[0];
-			const entityId otherId = typeViews.find(typeId)->second->GetEntityId(elementAddress);
-
-			// update the position of the swapped element
-			assert(m_ContainedEntities.contains(otherId));
-			m_ContainedEntities[otherId] = offset;
-
-			// swap remove
-			m_Data[offset] = std::move(m_Data.back());
-			m_Data.pop_back();
-		}
+		return GetWithTypeId(typeId, GetEntityPos(id));
 	}
 
-	bool Contains(entityId id) const override { return m_ContainedEntities.contains(id); }
-	bool Contains(entityId id, size_t& offset) const override
+	VoidReference& Get(size_t typePos, size_t elementPos)
 	{
-		auto it = m_ContainedEntities.find(id);
-		if (it != m_ContainedEntities.end())
-		{
-			offset = it->second;
-			return true;
-		}
-		return false;
+		return m_Data[elementPos * m_TypesAmount + typePos];
 	}
+
+	VoidReference& GetWithTypeId(uint32_t typeId, size_t elementPos)
+	{
+		return Get(GetTypePos(typeId), elementPos);
+	}
+
+	VoidReference& GetEntity(size_t typePos, entityId id)
+	{
+		return Get(typePos, GetEntityPos(id));
+	}
+
+	VoidReference& GetEntityWithTypeId(uint32_t typeId, entityId id)
+	{
+		return GetWithTypeId(typeId, GetEntityPos(id));
+	}
+
+	template <typename T>
+	Reference<T> Get(size_t typePos, size_t elementPos) const
+	{
+		return Get(typePos, elementPos).ToReference<T>();
+	}
+
+	template <typename T>
+	Reference<T> Get(size_t elementPos) const
+	{
+		return Get(reflection::type_id<T>(), elementPos).ToReference<T>();
+	}
+
+	template <typename T>
+	Reference<T> GetEntity(size_t typePos, entityId id) const
+	{
+		return GetEntity(typePos, id).ToReference<T>();
+	}
+
+	template <typename T>
+	Reference<T> GetEntityWithTypeId(entityId id) const
+	{
+		return GetEntity(reflection::type_id<T>(), id).ToReference<T>();
+	}
+
+	const uint32_t* GetTypeIds(size_t& size) const
+	{
+		size = m_TypesAmount;
+		return m_pTypes.get();
+	}
+
+	const uint32_t* GetTypeIds() const
+	{
+		return m_pTypes.get();
+	}
+
+	size_t GetTypeAmount() const
+	{
+		return m_TypesAmount;
+	}
+
+	template <typename... Types>
+	bool Assert() const;
+
+	bool AssertTypeCombination(const uint32_t* types, size_t size) const;
+
+	EntityRegistry* GetRegistry() { return m_pRegistry; }
+	const EntityRegistry* GetRegistry() const { return m_pRegistry; }
+
+	template <typename... Types>
+	void ApplyFunction(const std::function<void(Types&...)>& function, size_t pos) const;
+
+	template <typename... Types>
+	void ApplyFunctionOnEntity(const std::function<void(Types&...)>& function, entityId id) const;
+
+	template <typename... Types>
+	void ApplyFunctionOnAll(const std::function<void(Types&...)>& function) const;
+
+	bool Compare(const uint32_t* types, size_t size) const;
+
+	bool Contains(uint32_t typeId) const;
 
 private:
 
+	void Initialize();
+	void push_back();
+	void pop_back();
+	void move(size_t source, size_t target);
+	size_t back();
+	void SwapRemove(size_t pos);
 
 private:
+	EntityRegistry* m_pRegistry;
 
-	std::vector<BindingView> m_Data;
-	
-	std::array<uint32_t, sizeof...(Types)> m_typeIds;
+	std::vector<VoidReference> m_Data;
+	const std::unique_ptr<uint32_t[]> m_pTypes;
+	const size_t m_TypesAmount{};
 
-	// entity and offset from m_typeIds.data()
 	std::unordered_map<entityId, size_t> m_ContainedEntities;
-
-	EntityRegistry& m_Registry;
 
 };
 
+template <typename ... Types>
+bool TypeBinding::Assert() const
+{
+	if (m_TypesAmount != sizeof...(Types))
+		return false;
 
+	auto typeIds = reflection::Type_ids<Types...>();
+	for (size_t i{}; i < m_TypesAmount; ++i)
+	{
+		if (typeIds[i] != m_pTypes[i])
+			return false;
+	}
+	return true;
+}
 
-/** Iterator for iterating over the elements of the binding*/
-	//class BindingIterator final : public std::iterator<
-	//	std::random_access_iterator_tag,
-	//	std::array<void*, sizeof...(Types)>,
-	//	size_t,
-	//	std::array<void*, sizeof...(Types)>*,
-	//	std::array<void*, sizeof...(Types)>&
-	//>
-	//{
-	//public:
-	//	using element = std::array<void*, sizeof...(Types)>;
-	//public:
-	//	BindingIterator() = default;
-	//	BindingIterator(const BindingIterator&) = default;
-	//	BindingIterator(BindingIterator&&) = default;
-	//	BindingIterator& operator=(const BindingIterator&) = default;
-	//	BindingIterator& operator=(BindingIterator&&) = default;
-	//	~BindingIterator() = default;
-	//	BindingIterator(element* ptr) : m_ptr(ptr) {}
-	//public:
-	//	bool operator==(const BindingIterator& rhs) const { return m_ptr == rhs.m_ptr; }
-	//	bool operator!=(const BindingIterator& rhs) const { return m_ptr != rhs.m_ptr; }
-	//	bool operator<(const BindingIterator& rhs) const { return m_ptr < rhs.m_ptr; }
-	//	bool operator>(const BindingIterator& rhs) const { return m_ptr > rhs.m_ptr; }
-	//	bool operator<=(const BindingIterator& rhs) const { return m_ptr <= rhs.m_ptr; }
-	//	bool operator>=(const BindingIterator& rhs) const { return m_ptr >= rhs.m_ptr; }
+template <typename ... Types>
+void TypeBinding::ApplyFunctionOnEntity(const std::function<void(Types&...)>& function, entityId id) const
+{
+	ApplyFunction(function, GetEntityPos(id));
+}
 
-	//	element& operator*() { return *m_ptr; }
-	//	element operator*() const { return *m_ptr; }
-	//	element& operator->() { return m_ptr; }
+template <typename ... Types>
+void TypeBinding::ApplyFunctionOnAll(const std::function<void(Types&...)>& function) const
+{
+	const size_t size{ m_Data.size() / m_TypesAmount };
+	for (size_t i{}; i < size; ++i)
+	{
+		ApplyFunction(function, i);
+	}
+}
 
-	//	BindingIterator& operator++() { ++m_ptr; return *this; }
-	//	BindingIterator& operator--() { --m_ptr; return *this; }
-	//	BindingIterator operator++(int) { BindingIterator ph{ *this }; ++m_ptr; return ph; }
-	//	BindingIterator operator--(int) { BindingIterator ph{ *this }; --m_ptr; return ph; }
+template <typename ... Types>
+void TypeBinding::ApplyFunction(const std::function<void(Types&...)>& function, size_t pos) const
+{
+	assert(sizeof...(Types) == m_TypesAmount);
+	assert(Assert<Types...>());
 
-	//	BindingIterator& operator+=(size_t rhs) { m_ptr += rhs; return *this; }
-	//	BindingIterator& operator-=(size_t rhs) { m_ptr -= rhs; return *this; }
+	if constexpr (sizeof...(Types) == 2)
+	{
+		function(
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 3)
+	{
+		function(
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 4)
+	{
+		function(
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get(),
+			*Get<std::tuple_element_t<3, std::tuple<Types...>>>(3, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 5)
+	{
+		function(
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get(),
+			*Get<std::tuple_element_t<3, std::tuple<Types...>>>(3, pos).get(),
+			*Get<std::tuple_element_t<4, std::tuple<Types...>>>(4, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 6)
+	{
+		function(
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get(),
+			*Get<std::tuple_element_t<3, std::tuple<Types...>>>(3, pos).get(),
+			*Get<std::tuple_element_t<4, std::tuple<Types...>>>(4, pos).get(),
+			*Get<std::tuple_element_t<5, std::tuple<Types...>>>(5, pos).get());
+	}
+	static_assert(sizeof...(Types) <= 6, "Please expand this sequence");
+}
 
-	//	BindingIterator operator+(size_t rhs) { return BindingIterator{ m_ptr + rhs }; }
-	//	BindingIterator operator-(size_t rhs) { return BindingIterator{ m_ptr - rhs }; }
-	//	BindingIterator operator+(const BindingIterator& rhs) { return BindingIterator{ m_ptr + rhs.m_ptr }; }
-	//	BindingIterator operator-(const BindingIterator& rhs) { return BindingIterator{ m_ptr - rhs.m_ptr }; }
-
-	//	element& operator[](size_t offset) { return m_ptr[offset]; }
-	//public:
-
-	//	template <typename T>
-	//	T* Get() { return reinterpret_cast<T*>(m_ptr[GetTypePosCompare<T, Types...>()]); }
-
-	//private:
-	//	element* m_ptr{};
-	//};

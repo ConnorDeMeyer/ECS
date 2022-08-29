@@ -1,6 +1,7 @@
 #pragma once
 #include <fstream>
 #include <iostream>
+#include "../TypeInformation/TypeInfoGenerator.h"
 
 struct Render
 {
@@ -23,6 +24,8 @@ struct Render
 		stream.read(reinterpret_cast<char*>(this), sizeof(Render));
 	}
 };
+
+RegisterClass<Render> renderReg;
 
 inline bool SortCompare(const Render& r0, const Render& r1)
 {

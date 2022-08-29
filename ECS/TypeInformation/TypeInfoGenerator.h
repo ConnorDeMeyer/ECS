@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TypeInformation.h"
+#include "ECSTypeInformation.h"
 
 //template <typename T>
 //concept MemberFielsInfo = requires(T val) { T::TypeInfo_RegisterFields(); };
@@ -15,6 +16,7 @@ private:
 		ClassInformationGenerator()
 		{
 			TypeInformation::AddClass<T>();
+			TypeInformation::AddTypeViewClass<T>();
 			//if constexpr (MemberFielsInfo<T>)	T::TypeInfo_RegisterFields();
 		}
 	};

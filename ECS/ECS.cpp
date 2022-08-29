@@ -26,7 +26,7 @@ void test3();
 
 int main()
 {
-    //test1();
+    test1();
     test2();
     //test3();
 }
@@ -49,7 +49,7 @@ void test1()
     for (size_t i{}; i < 8; ++i)
         renders.Add(i);
 
-    auto& binding = registry.AddBinding<Transform, Render>();
+    registry.AddBinding<Transform, Render>();
 
     for (size_t i{ 8 }; i < 16; ++i)
         renders.Add(i);
@@ -112,27 +112,9 @@ void test1()
 
     std::cout << "binding\n";
 
-    for (auto& transformsRender : binding)
-    {
-        auto render = transformsRender.Get<Render>();
-        auto transform = transformsRender.Get<Transform>();
-        std::cout << render->TextureId << '\n';
-        std::cout << transform->position[0] << '\n';
-    }
-
-    auto& SameBinding = registry.GetBinding<Transform, Render>();
-
-    for (auto& transformsRender : SameBinding)
-    {
-        auto render = transformsRender.Get<Render>();
-        auto transform = transformsRender.Get<Transform>();
-        std::cout << render->TextureId << '\n';
-        std::cout << transform->position[0] << '\n';
-    }
-
     std::cout << "GameComps\n";
 
-    renders.SetSortingPredicate([](const Render& rhs, const Render& lhs) {return rhs.TextureId > lhs.TextureId; });
+    //renders.SetSortingPredicate([](const Render& rhs, const Render& lhs) {return rhs.TextureId > lhs.TextureId; });
 
     renders.Add(20);
 
@@ -200,8 +182,6 @@ void test2()
     for (size_t i{}; i < 4; ++i) GameObjects.pop_back();
     registry.Update();
     std::cout << '\n';
-
-
 
 }
 

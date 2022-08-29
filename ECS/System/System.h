@@ -27,23 +27,18 @@ class BindingSystem : public SystemBase
 {
 	static_assert(sizeof...(Types) >= 2);
 public:
-	BindingSystem(const std::string& name, TypeBinding<Types...>* typeBinding, int32_t executionOrder = int32_t(ExecutionTime::Update)) : SystemBase(name, executionOrder), m_Binding(typeBinding) {}
+	BindingSystem(const std::string& name, TypeBinding* typeBinding, int32_t executionOrder = int32_t(ExecutionTime::Update)) : SystemBase(name, executionOrder), m_Binding(typeBinding) {}
 
-	TypeBinding<Types...>* GetTypeBinding() const { return m_Binding; }
+	TypeBinding* GetTypeBinding() const { return m_Binding; }
 
 	static constexpr std::array<uint32_t, sizeof...(Types)> GetTypes()
 	{
 		return reflection::Type_ids<Types...>();
 	}
 
-	static constexpr TypeBinding<Types...>* ReinterpretCast(TypeBindingBase* binding)
-	{
-		return reinterpret_cast<TypeBinding<Types...>*>(binding);
-	}
-
 protected:
 
-	TypeBinding<Types...>* m_Binding{};
+	TypeBinding* m_Binding{};
 
 };
 template <typename Class, typename... U>
@@ -73,14 +68,11 @@ template <typename... Types>
 class BindingSystemDynamic final : public BindingSystem<Types...>
 {
 public:
-	BindingSystemDynamic(const std::string& name, TypeBinding<Types...>* typeBinding, std::function<void(Types&...)> function, int32_t executionOrder = int32_t(ExecutionTime::Update)) : BindingSystem<Types...>(name, typeBinding, executionOrder), m_ExecutingFunction(function) {}
+	BindingSystemDynamic(const std::string& name, TypeBinding* typeBinding, std::function<void(Types&...)> function, int32_t executionOrder = int32_t(ExecutionTime::Update)) : BindingSystem<Types...>(name, typeBinding, executionOrder), m_ExecutingFunction(function) {}
 
 	void Execute() override
 	{
-		for (auto& bind : *BindingSystem<Types...>::m_Binding)
-		{
-			bind.ApplyFunction(m_ExecutingFunction);
-		}
+		BindingSystem<Types...>::m_Binding->ApplyFunctionOnAll(m_ExecutingFunction);
 	}
 
 private:

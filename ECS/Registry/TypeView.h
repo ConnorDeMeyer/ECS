@@ -7,12 +7,9 @@
 #include <functional>
 #include <ranges>
 
-#include "../TypeInformation/TypeInfoGenerator.h"
 #include "../Allocators/ObjectPoolAllocator.h"
 #include "../Sorting/SmoothSort.h"
 #include "TypeViewBase.h"
-
-#include "../TestClasses/Render.h"
 
 /** If the Serializable function given T as value type exists*/
 template <typename T>
@@ -26,27 +23,18 @@ concept Deserializable = requires(std::ifstream& fstream, T val){ val.Deserializ
 template <typename T>
 concept Streamable = Serializable<T> && Deserializable<T>;
 
-/** If a function exists called SortCompare that takes (const T&, const T&) as parameters, it will automatically set it as the sorting algorithm*/
-template <typename T>
-concept Sortable = requires(T val0, T val1) { SortCompare(val0, val1); };
-
 /** If a Class should be initialized it can be given the Initialize function which will be called when it is placed inside of the Type View*/
 template <typename T>
 concept Initializable = requires(class EntityRegistry* registry, T val) { val.Initialize(registry); };
 
-inline bool SortCompare(int i0, int i1) { return i0 < i1; }
+inline bool SortCompare(const int& i0, const int& i1) { return i0 < i1; }
 
 template <typename T>
 class TypeView : public TypeViewBase
 {
 public:
 
-	TypeView(EntityRegistry* pRegistry) : TypeViewBase(pRegistry)
-	{
-		if constexpr (Sortable<T>) {
-			m_SortingAlgorithm = std::function<bool(const T&, const T&)>(static_cast<bool (*)(const T&, const T&)>(&SortCompare));
-		}
-	}
+	TypeView(EntityRegistry* pRegistry) : TypeViewBase(pRegistry) {}
 	~TypeView() override = default;
 
 	TypeView(const TypeView&) = delete;
@@ -88,10 +76,6 @@ public:
 	void Remove(entityId id) override;
 
 	bool Contains(entityId id) override;
-
-	/** Sets the sorting algorithm for which the data will be sorted by.*/
-	void SetSortingPredicate(const std::function<bool(const T&, const T&)>& predicate) { m_SortingAlgorithm = predicate; }
-	void SetSortingPredicate(std::function<bool(const T&, const T&)>&& predicate) { m_SortingAlgorithm = predicate; };
 
 	/** Returns the amount of elements inside of the underlying array.*/
 	size_t GetSize() const { return m_Data.size(); }
@@ -172,8 +156,6 @@ private:
 	std::vector<T> m_Data;
 	std::unordered_map<entityId, ReferencePointer<T>*> m_EntityDataReferences;
 
-	std::function<bool(const T&, const T&)> m_SortingAlgorithm;
-
 	/** Amount of inactive items inside of the array*/
 	size_t m_InactiveItems{};
 
@@ -184,10 +166,6 @@ private:
 	std::vector<std::pair<entityId, T>> m_AddedEntitiesUpdate;
 
 	const size_t m_ElementSize{ sizeof(T) };
-
-private:
-
-	inline static RegisterClass<T> ClassInfoGen;
 
 };
 
@@ -511,19 +489,25 @@ void TypeView<T>::SetViewDataFlag(ViewDataFlag flag)
 	switch (flag)
 	{
 	case ViewDataFlag::dirty:
-		if (m_SortingAlgorithm)
+		if constexpr (Sortable<T>)
 		{
 			m_DataFlag = ViewDataFlag::dirty;
 			++m_DataFlagId;
 		}
-		break;/*
+		break;
 	case ViewDataFlag::invalid:
-		if (m_SortingAlgorithm)
+		if constexpr (Sortable<T>)
 		{
-			
+			volatile SortingProgress progress{};
+			const volatile bool quit{};
+			SortData(progress, quit);
 			m_DataFlag = ViewDataFlag::valid;
 		}
-		break;*/
+		else
+		{
+			m_DataFlag = ViewDataFlag::valid;
+		}
+		break;
 	}
 }
 
@@ -557,7 +541,7 @@ void TypeView<T>::SortData(volatile SortingProgress& sortingProgress, const vola
 
 		m_DataFlag = ViewDataFlag::sorting;
 
-		SmoothSort(DataCopy.get(), newEntityMapping.get(), m_DataFlag, size, m_SortingAlgorithm);
+		SmoothSort(DataCopy.get(), newEntityMapping.get(), m_DataFlag, size);
 
 		if (m_DataFlag == ViewDataFlag::sorting) // in case the data flag changed to dirty while sorting
 		{

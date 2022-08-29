@@ -15,80 +15,6 @@
 #include "TypeView.h"
 #include "../System/System.h"
 
-class TypeBindingIdentifier final
-{
-public:
-
-	TypeBindingIdentifier() = default;
-
-	~TypeBindingIdentifier() = default;
-
-	TypeBindingIdentifier(const TypeBindingIdentifier&) = delete;
-	TypeBindingIdentifier& operator=(const TypeBindingIdentifier&) = delete;
-
-	TypeBindingIdentifier(TypeBindingIdentifier&& other) noexcept = default;
-	TypeBindingIdentifier& operator=(TypeBindingIdentifier&& other) noexcept = default;
-
-	template <typename... Types>
-	void Initialize(TypeBindingBase* TypeBinding)
-	{
-		m_TypeBinding = std::unique_ptr<TypeBindingBase>(TypeBinding);
-		m_TypesAmount = sizeof...(Types);
-		m_TypesHashes = std::unique_ptr<uint32_t[]>(new uint32_t[m_TypesAmount]);
-
-		auto types = reflection::Type_ids<Types...>();
-		std::memcpy(m_TypesHashes.get(), types.data(), sizeof(uint32_t) * m_TypesAmount);
-	}
-
-	template <typename... Types>
-	bool Compare()
-	{
-		auto types = reflection::Type_ids<Types...>();
-		return Compare(types.data(), types.size());
-	}
-
-	bool Compare(const uint32_t* types, const size_t size);
-
-
-	bool Contains(uint32_t id);
-
-	template <typename Type>
-	bool Contains()
-	{
-		constexpr uint32_t Id{ reflection::type_id<Type>() };
-		return Contains(Id);
-	}
-	
-	TypeBindingBase* GetTypeBinding() const { return m_TypeBinding.get(); }
-	size_t GetTypesAmount() const { return m_TypesAmount; }
-	const uint32_t* GetTypeIds() const { return m_TypesHashes.get(); }
-
-private:
-
-	bool Assert(const uint32_t* types, const size_t size);
-	
-private:
-	std::unique_ptr<TypeBindingBase> m_TypeBinding{};
-	size_t m_TypesAmount{};
-	std::unique_ptr<uint32_t[]> m_TypesHashes{};
-
-};
-
-/** A reference version of TypeInfoIdentifier that can be passed around and copied without having to worry about it going out of scope*/
-struct TypeBindingIdentifierReference final
-{
-	TypeBindingIdentifierReference(const TypeBindingIdentifier& bindingId)
-		: TypeBinding(bindingId.GetTypeBinding())
-		, TypesAmount(bindingId.GetTypesAmount())
-		, TypeIds(bindingId.GetTypeIds())
-	{}
-
-	TypeBindingBase* TypeBinding;
-	size_t TypesAmount;
-	const uint32_t* TypeIds;
-};
-
-
 class EntityRegistry final
 {
 public:
@@ -102,6 +28,10 @@ public:
 	EntityRegistry& operator=(EntityRegistry&&)			= delete;
 
 public:
+
+	/**
+	 * SYSTEMS
+	 */
 
 	template <typename Type>
 	void AddSystem(const std::string& name, const std::function<void(Type&)>& function, int32_t executionOrder = int32_t(ExecutionTime::Update));
@@ -117,8 +47,28 @@ public:
 
 	void RemoveSystem(std::string name);
 
-	template<typename T>
+	/**
+	 * VIEWS
+	 */
+
+	TypeViewBase* AddView(uint32_t typeId);
+
+	TypeViewBase* GetTypeView(uint32_t typeId) const;
+
+	TypeViewBase* GetOrCreateView(uint32_t typeId);
+
+	template <typename T>
 	TypeView<T>& AddView();
+
+	template <typename T>
+	TypeView<T>& GetTypeView() const;
+
+	template <typename T>
+	TypeView<T>& GetOrCreateView();
+
+	/**
+	 * ENTITIES
+	 */
 
 	Entity CreateEntity();
 
@@ -129,19 +79,38 @@ public:
 
 	const Entity CreateOrGetEntity(entityId id);
 
-	template <typename... Types>
-	TypeBinding<Types...>& AddBinding();
+	/**
+	 * BINDINGS
+	 */
 
 	template <typename... Types>
-	[[nodiscard]] TypeBinding<Types...>& GetBinding();
+	TypeBinding* AddBinding();
 
-	[[nodiscard]] TypeBindingBase* GetBinding(const uint32_t* types, const size_t size);
+	TypeBinding* AddBinding(const uint32_t* typeIds, size_t size);
+
+	template <typename... Types>
+	[[nodiscard]] TypeBinding* GetBinding();
+
+	[[nodiscard]] TypeBinding* GetBinding(const uint32_t* types, const size_t size) const;
+
+	[[nodiscard]] TypeBinding* GetOrCreateBinding(const uint32_t* types, const size_t size);
+
+	template <typename... Types>
+	[[nodiscard]] TypeBinding* GetOrCreateBinding();
+
+	/**
+	 * MISC
+	 */
 
 	void Update();
 
 	void Serialize(std::ofstream& stream);
 
 	void Deserialize(std::ifstream& stream);
+
+	/**
+	 * COMPONENTS
+	 */
 
 	template <typename T>
 	Reference<T> GetComponent(const Entity& entity);
@@ -169,15 +138,11 @@ public:
 
 private:
 
-	void RegisterBinding(const TypeBindingIdentifier& identifier);
-
-private:
-
 	std::unordered_set<entityId> m_Entities;
 
 	std::unordered_map<uint32_t, std::unique_ptr<TypeViewBase>> m_TypeViews;
 
-	std::vector<TypeBindingIdentifier> m_TypeBindings;
+	std::vector<TypeBinding*> m_TypeBindings;
 
 	std::vector<TypeViewBase*> m_GameComponentTypeViews;
 	
@@ -234,38 +199,38 @@ void EntityRegistry::AddSystem(const std::string& name, const std::function<void
 	}
 
 	//Add subsystems
-	std::vector<uint32_t> subClasses;
-	size_t processedCounter{};
-
-	for (auto& childId : TypeInformation::Data::ClassHierarchy[reflection::type_id<Type>()])
-		subClasses.emplace_back(childId);
-
-	while (subClasses.size() != processedCounter)
-	{
-		for (auto& childId : TypeInformation::Data::ClassHierarchy[subClasses[processedCounter]])
-		{
-			subClasses.emplace_back(childId);
-		}
-		++processedCounter;
-	}
-
-	for (auto SubClassId : subClasses)
-	{
-		TypeView<Type>* view{};
-		auto it = m_TypeViews.find(SubClassId);
-		if (it == m_TypeViews.end())
-			view = reinterpret_cast<TypeView<Type>*>(&AddView<Type>());
-		else
-		{
-			TypeViewBase* viewBase = it->second.get();
-			view = reinterpret_cast<TypeView<Type>*>(viewBase);
-		}
-
-		auto typeName = TypeInformation::Data::TypeInformation[SubClassId].m_TypeName;
-		auto system = new ViewSystemDynamic<Type>{ name + "_" + std::string(typeName), view, function, executionOrder};
-
-		m_Systems.emplace(system);
-	}
+	//std::vector<uint32_t> subClasses;
+	//size_t processedCounter{};
+	//
+	//for (auto& childId : TypeInformation::Data::ClassHierarchy[reflection::type_id<Type>()])
+	//	subClasses.emplace_back(childId);
+	//
+	//while (subClasses.size() != processedCounter)
+	//{
+	//	for (auto& childId : TypeInformation::Data::ClassHierarchy[subClasses[processedCounter]])
+	//	{
+	//		subClasses.emplace_back(childId);
+	//	}
+	//	++processedCounter;
+	//}
+	//
+	//for (auto SubClassId : subClasses)
+	//{
+	//	TypeView<Type>* view{};
+	//	auto it = m_TypeViews.find(SubClassId);
+	//	if (it == m_TypeViews.end())
+	//		view = reinterpret_cast<TypeView<Type>*>(&AddView<Type>());
+	//	else
+	//	{
+	//		TypeViewBase* viewBase = it->second.get();
+	//		view = reinterpret_cast<TypeView<Type>*>(viewBase);
+	//	}
+	//
+	//	auto typeName = TypeInformation::Data::TypeInformation[SubClassId].m_TypeName;
+	//	auto system = new ViewSystemDynamic<Type>{ name + "_" + std::string(typeName), view, function, executionOrder};
+	//
+	//	m_Systems.emplace(system);
+	//}
 }
 
 template <typename ... Types>
@@ -274,15 +239,7 @@ void EntityRegistry::AddSystem(const std::string& name, const std::function<void
 	// Make sure the name is not in there already
 	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [name](const std::unique_ptr<SystemBase>& sys) {return sys->GetName() == name; }));
 
-	TypeBinding<Types...>* binding{};
-	try
-	{
-		binding = &GetBinding<Types...>();
-	}
-	catch (const std::runtime_error&)
-	{
-		binding = &AddBinding<Types...>();
-	}
+	TypeBinding* binding{GetOrCreateBinding<Types...>()};
 
 	auto system = new BindingSystemDynamic<Types...>{ name, binding, function, executionOrder };
 
@@ -314,9 +271,9 @@ void EntityRegistry::AddSystem(const std::string& name, int32_t executionOrder) 
 	else if constexpr (isBindingSystem<System>)
 	{
 		auto types = System::GetTypes();
-		TypeBindingBase* binding{ GetBinding(types.data(), types.size()) };
+		TypeBinding* binding{ GetBinding(types.data(), types.size()) };
 		
-		auto system = new System(name, System::ReinterpretCast(binding), executionOrder);
+		auto system = new System(name, binding, executionOrder);
 		m_Systems.emplace(system);
 	}
 }
@@ -343,9 +300,9 @@ void EntityRegistry::AddSystem() requires std::is_base_of_v<SystemBase, System>
 	else if constexpr (isBindingSystem<System>)
 	{
 		auto types = System::GetTypes();
-		TypeBindingBase* binding{ GetBinding(types.data(), types.size()) };
+		TypeBinding* binding{ GetBinding(types.data(), types.size()) };
 
-		auto system = new System(System::ReinterpretCast(binding));
+		auto system = new System(binding);
 		m_Systems.emplace(system);
 
 		assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [&system](const std::unique_ptr<SystemBase>& sys) {return sys->GetName() == system.GetName(); }));
@@ -361,11 +318,28 @@ TypeView<T>& EntityRegistry::AddView()
 	return *view;
 }
 
+template <typename T>
+TypeView<T>& EntityRegistry::GetOrCreateView()
+{
+	auto it = m_TypeViews.find(reflection::type_id<T>());
+	if (it != m_TypeViews.end())
+		return *reinterpret_cast<TypeView<T>*>(it->second.get());
+	else
+		return AddView<T>();
+}
+
 template <typename ... Types>
-[[nodiscard]] TypeBinding<Types...>& EntityRegistry::GetBinding()
+[[nodiscard]] TypeBinding* EntityRegistry::GetBinding()
 {
 	auto types = reflection::Type_ids<Types...>();
-	return reinterpret_cast<TypeBinding<Types...>&>(*GetBinding(types.data(), types.size()));
+	return GetBinding(types.data(), types.size());
+}
+
+template <typename ... Types>
+TypeBinding* EntityRegistry::GetOrCreateBinding()
+{
+	auto types = reflection::Type_ids<Types...>();
+	return GetOrCreateBinding(types.data(), types.size());
 }
 
 template <typename T>
@@ -448,16 +422,8 @@ void EntityRegistry::RemoveComponent(Entity entity)
 }
 
 template <typename ... Types>
-TypeBinding<Types...>& EntityRegistry::AddBinding()
+TypeBinding* EntityRegistry::AddBinding()
 {
-	auto binding = new TypeBinding<Types...>(*this);
-	
-	TypeBindingIdentifier identifier{};
-	identifier.Initialize<Types...>(binding);
-
-	auto& bindingIdentifier = m_TypeBindings.emplace_back(std::move(identifier));
-
-	RegisterBinding(bindingIdentifier);
-
-	return *binding;
+	auto typeIds = reflection::Type_ids<Types...>();
+	return AddBinding(typeIds.data(), typeIds.size());
 }
