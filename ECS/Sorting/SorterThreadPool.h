@@ -13,6 +13,12 @@ public:
 	ThreadPool(const size_t threadAmount);
 	~ThreadPool();
 
+	ThreadPool(const ThreadPool&) = delete;
+	ThreadPool(ThreadPool&&) = delete;
+
+	ThreadPool& operator=(const ThreadPool&) = delete;
+	ThreadPool& operator=(ThreadPool&&) = delete;
+
 	void AddFunction(const std::function<void()>& function);
 
 	const volatile bool& GetQuitBool() const { return m_Quit; }
@@ -21,7 +27,7 @@ public:
 
 private:
 
-	static void StartThread(const volatile bool& stopBool, std::function<void()>& functionToWatch);
+	static void StartThread(volatile bool* stopBool, std::function<void()>* functionToWatch);
 
 private:
 
@@ -31,5 +37,6 @@ private:
 	std::mutex m_StartThreadLock;
 
 	volatile bool m_Quit{};
+	volatile bool* quitBool{};
 
 };

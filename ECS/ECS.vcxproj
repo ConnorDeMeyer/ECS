@@ -27,26 +27,26 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -70,6 +70,22 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -140,14 +156,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Allocators\ObjectPoolAllocator.cpp" />
-    <ClCompile Include="ECS.cpp" />
     <ClCompile Include="Registry\EntityRegistry.cpp" />
     <ClCompile Include="Registry\TypeBinding.cpp" />
+    <ClCompile Include="Serialize\Serializer.cpp" />
     <ClCompile Include="Sorting\SorterThreadPool.cpp" />
+    <ClCompile Include="TypeInformation\TypeInformation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocators\ObjectPoolAllocator.h" />
     <ClInclude Include="Entity\GameObject.h" />
+    <ClInclude Include="Serialize\Serializer.h" />
     <ClInclude Include="Sorting\SmoothSort.h" />
     <ClInclude Include="Registry\EntityRegistry.h" />
     <ClInclude Include="Entity\Entity.h" />
@@ -157,10 +175,6 @@
     <ClInclude Include="Sorting\SorterThreadPool.h" />
     <ClInclude Include="System\System.h" />
     <ClInclude Include="System\SystemBase.h" />
-    <ClInclude Include="TestClasses\gameComponentTest.h" />
-    <ClInclude Include="TestClasses\Render.h" />
-    <ClInclude Include="TestClasses\RenderingSystem.h" />
-    <ClInclude Include="TestClasses\Transform.h" />
     <ClInclude Include="TypeInformation\ECSTypeInformation.h" />
     <ClInclude Include="TypeInformation\TypeInfoGenerator.h" />
     <ClInclude Include="TypeInformation\reflection.h" />

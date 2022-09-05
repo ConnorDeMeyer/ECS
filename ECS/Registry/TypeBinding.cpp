@@ -11,8 +11,11 @@ bool TypeBinding::AssertTypeCombination(const uint32_t* types, size_t size) cons
 	bool ContainsAll{ true };
 	for (size_t i{}; i < size; ++i)
 	{
-		if (Contains(types[i]))
+		if (!Contains(types[i]))
+		{
 			ContainsAll = false;
+			break;
+		}
 	}
 
 	if (!ContainsAll)
@@ -22,10 +25,25 @@ bool TypeBinding::AssertTypeCombination(const uint32_t* types, size_t size) cons
 	for (size_t i{}; i < m_TypesAmount; ++i)
 	{
 		if (types[i] != m_pTypes[i])
+		{
 			isEqual = false;
+			break;
+		}
 	}
 	if (!isEqual && ContainsAll)
+	{
+		std::cout << "Used types were:\n";
+		for (size_t i{}; i < size; ++i)
+		{
+			std::cout << TypeInformation::GetTypeInfo(types[i]).m_TypeName << ' ';
+		}
+		std::cout << "\nBut should be:\n";
+		for (size_t i{}; i < size; ++i)
+		{
+			std::cout << TypeInformation::GetTypeInfo(m_pTypes[i]).m_TypeName << ' ';
+		}
 		return false;
+	}
 
 	return true;
 }
@@ -53,6 +71,12 @@ bool TypeBinding::Contains(uint32_t typeId) const
 			return true;
 	}
 	return false;
+}
+
+void TypeBinding::PrintTypes(std::ostream& stream)
+{
+	for (size_t i{}; i < m_TypesAmount; ++i)
+		stream << '[' << m_pTypes[i] << ']';
 }
 
 void TypeBinding::Initialize()

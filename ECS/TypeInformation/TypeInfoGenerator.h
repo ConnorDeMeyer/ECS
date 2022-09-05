@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "TypeInformation.h"
 #include "ECSTypeInformation.h"
 
@@ -16,7 +18,7 @@ private:
 		ClassInformationGenerator()
 		{
 			TypeInformation::AddClass<T>();
-			TypeInformation::AddTypeViewClass<T>();
+			ECSTypeInformation::AddTypeViewClass<T>();
 			//if constexpr (MemberFielsInfo<T>)	T::TypeInfo_RegisterFields();
 		}
 	};
@@ -40,4 +42,53 @@ private:
 		}
 	};
 	inline static ChildInformationGenerator Generator{};
+};
+
+template <typename System>
+class RegisterSystem final
+{
+public:
+	RegisterSystem(const SystemParameters& parameters)
+	{
+		auto it = Generator.find(parameters.name);
+		if (it == Generator.end())
+		{
+			Generator.emplace(parameters.name, SystemInformationGenerator{ parameters });
+		}
+	}
+
+private:
+	class SystemInformationGenerator final
+	{
+	public:
+		SystemInformationGenerator(const SystemParameters& parameters)
+		{
+			ECSTypeInformation::AddSystem<System>(parameters);
+		}
+	};
+	inline static std::unordered_map<std::string, SystemInformationGenerator> Generator{};
+};
+
+template <typename... Types>
+class RegisterDynamicSystem final
+{
+public:
+	RegisterDynamicSystem(const SystemParameters& parameters, const std::function<void(Types&...)>& function)
+	{
+		auto it = Generator.find(parameters.name);
+		if (it == Generator.end())
+		{
+			Generator.emplace(parameters.name, SystemInformationGenerator{ parameters, function });
+		}
+	}
+private:
+	class SystemInformationGenerator final
+	{
+	public:
+		SystemInformationGenerator(const SystemParameters& parameters, const std::function<void(Types&...)>& function)
+		{
+			ECSTypeInformation::AddSystem(parameters, function);
+		}
+	};
+	inline static std::unordered_map<std::string, SystemInformationGenerator> Generator{};
 };

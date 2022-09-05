@@ -14,8 +14,9 @@ ThreadPool::ThreadPool(const size_t threadAmount)
 
 	for (uint32_t i{}; i < threadAmount; ++i)
 	{
-		m_Threads[i] = std::jthread(ThreadPool::StartThread, std::ref(m_Quit), std::ref(m_Functions[i]));
+		m_Threads[i] = std::jthread(ThreadPool::StartThread, &m_Quit, &m_Functions[i]);
 	}
+	quitBool = &m_Quit;
 }
 
 ThreadPool::~ThreadPool()
@@ -46,7 +47,7 @@ void ThreadPool::QuitAndWait()
 	}
 }
 
-void ThreadPool::StartThread(const volatile bool& stopBool, std::function<void()>& functionToWatch)
+void ThreadPool::StartThread(volatile bool* stopBool, std::function<void()>* functionToWatch)
 {
 	std::mutex waitMutex;
 	std::unique_lock waitLock(waitMutex);
@@ -54,15 +55,15 @@ void ThreadPool::StartThread(const volatile bool& stopBool, std::function<void()
 
 	while (true)
 	{
-		waitCond.wait_for(waitLock, 100ms, [stopBool, functionToWatch] {return stopBool || functionToWatch; });
+		waitCond.wait_for(waitLock, 100ms, [stopBool, functionToWatch] {return *stopBool || *functionToWatch; });
 
-		if (stopBool)
+		if (*stopBool)
 			return;
 
-		if (functionToWatch)
+		if (*functionToWatch)
 		{
-			functionToWatch();
-			functionToWatch = std::function<void()>();
+			(*functionToWatch)();
+			*functionToWatch = std::function<void()>();
 		}
 	}
 }

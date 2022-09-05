@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include <cstdint>
+#include <functional>
+#include <vector>
 
 #include "../Entity/Entity.h"
 
@@ -203,7 +205,7 @@ public:
 
 	T& operator*() { return *static_cast<T*>(m_VoidIterator.m_ptr); }
 	const T& operator*() const { return *static_cast<T*>(m_VoidIterator.m_ptr); }
-	T& operator->() { return *static_cast<T*>(m_VoidIterator.m_ptr); }
+	T* operator->() { return static_cast<T*>(m_VoidIterator.m_ptr); }
 
 	VoidIteratorType& operator++() { ++m_VoidIterator; return *this; }
 	VoidIteratorType& operator--() { --m_VoidIterator; return *this; }
@@ -266,11 +268,13 @@ public:
 
 	virtual void SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit) = 0;
 
-	virtual void SerializeView(std::ofstream& stream) = 0;
+	virtual void SerializeView(std::ostream& stream) = 0;
 
-	virtual void DeserializeView(std::ifstream& stream) = 0;
+	virtual void DeserializeView(std::istream& stream) = 0;
 
 	virtual void Remove(entityId id) = 0;
+
+	virtual void PrintType(std::ostream& stream) = 0;
 
 	size_t GetSize() const
 	{

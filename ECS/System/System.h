@@ -3,80 +3,107 @@
 #include "../Registry/TypeView.h"
 #include "../Registry/TypeBinding.h"
 
-template <typename T>
+
+/**
+ * ViewSystem is a system that acts on a single component.
+ * It has a pointer to the TypeView that contains the Component and can be accessed using the GetTypeView() method.
+ */
+template <typename Components>
 class ViewSystem : public SystemBase
 {
 public:
-	ViewSystem(const std::string& name, TypeView<T>* typeView, int32_t executionOrder = int32_t(ExecutionTime::Update)) : SystemBase(name, executionOrder), m_TypeView(typeView) {}
+	using ComponentType = Components;
 
-	TypeView<T>* GetTypeView() const { return m_TypeView; }
+public:
 
-	using ElementType = T;
+	ViewSystem(const SystemParameters& parameters) : SystemBase(parameters) {}
+
+	TypeView<Components>* GetTypeView() const { return m_TypeView; }
+	void SetTypeView(TypeView<Components>* view) { m_TypeView = view; }
+
+	constexpr uint32_t GetTypeId() const { return reflection::type_id<Components>(); }
+	constexpr std::string_view GetTypeName() const { return reflection::type_name<Components>(); }
+
+	size_t GetEntityAmount() override { return m_TypeView->GetActiveAmount(); }
+	void PrintTypes(std::ostream& stream) override { m_TypeView->PrintType(stream); }
 
 protected:
 
-	TypeView<T>* m_TypeView{};
+	TypeView<Components>* m_TypeView{};
 
 };
-template <typename Class, typename U>
-concept isViewSystem = std::is_base_of_v<ViewSystem<U>, Class>;
 
-
-template <typename... Types>
+/**
+ * BindingSystem is a system that acts on multiple components.
+ * It has a pointer to the TypeBinding that contains the given Components...
+ * @warning: Must use 2 or more components in template
+ */
+template <typename... Components>
 class BindingSystem : public SystemBase
 {
-	static_assert(sizeof...(Types) >= 2);
+	static_assert(sizeof...(Components) >= 2);
+
 public:
-	BindingSystem(const std::string& name, TypeBinding* typeBinding, int32_t executionOrder = int32_t(ExecutionTime::Update)) : SystemBase(name, executionOrder), m_Binding(typeBinding) {}
+	BindingSystem(const SystemParameters& parameters) : SystemBase(parameters) {}
 
 	TypeBinding* GetTypeBinding() const { return m_Binding; }
+	void SetTypeBinding(TypeBinding* binding) { m_Binding = binding; }
 
-	static constexpr std::array<uint32_t, sizeof...(Types)> GetTypes()
-	{
-		return reflection::Type_ids<Types...>();
-	}
+	static constexpr std::array<uint32_t, sizeof...(Components)> GetTypes()	{ return reflection::Type_ids<Components...>();}
+
+	size_t GetEntityAmount() override { return m_Binding->GetSize(); }
+	void PrintTypes(std::ostream& stream) override { m_Binding->PrintTypes(stream); }
 
 protected:
 
 	TypeBinding* m_Binding{};
 
 };
-template <typename Class, typename... U>
-concept isBindingSystem = std::is_base_of_v<BindingSystem<U...>, Class>;
 
+template <typename Class>
+concept isBindingSystem = std::is_base_of_v<SystemBase, Class> && requires(Class sys) { sys.GetTypeBinding(); };
 
-template <typename T>
-class ViewSystemDynamic final : public ViewSystem<T>
+template <typename Class>
+concept isViewSystem = std::is_base_of_v<SystemBase, Class> && requires(Class sys) { sys.GetTypeView(); };
+
+/**
+ * View System that can be initialized using a function taking the reference of the component.
+ * This will call the function on every component when the Execute() method is called.
+ */
+template <typename Component>
+class ViewSystemDynamic final : public ViewSystem<Component>
 {
 public:
-	ViewSystemDynamic(const std::string& name, TypeView<T>* typeView, std::function<void(T&)> function, int32_t executionOrder = int32_t(ExecutionTime::Update)) : ViewSystem<T>(name, typeView, executionOrder), m_ExecutingFunction(function) {}
+	ViewSystemDynamic(const SystemParameters& parameters, std::function<void(Component&)> function) : ViewSystem<Component>(parameters), m_ExecutingFunction(function) {}
 
 	void Execute() override
 	{
-		for (auto& element : *ViewSystem<T>::m_TypeView)
-		{
+		for (auto& element : *ViewSystem<Component>::m_TypeView)
 			m_ExecutingFunction(element);
-		}
 	}
 
 private:
 
-	std::function<void(T&)> m_ExecutingFunction;
+	std::function<void(Component&)> m_ExecutingFunction;
 };
 
-template <typename... Types>
-class BindingSystemDynamic final : public BindingSystem<Types...>
+/**
+ * Binding system that can be initialized using a function taking the references of the components.
+ * This will call the function on every element of the TypeBinding when the Execute() method is called.
+ */
+template <typename... Components>
+class BindingSystemDynamic final : public BindingSystem<Components...>
 {
 public:
-	BindingSystemDynamic(const std::string& name, TypeBinding* typeBinding, std::function<void(Types&...)> function, int32_t executionOrder = int32_t(ExecutionTime::Update)) : BindingSystem<Types...>(name, typeBinding, executionOrder), m_ExecutingFunction(function) {}
+	BindingSystemDynamic(const SystemParameters& parameters, const std::function<void(Components&...)>& function) : BindingSystem<Components...>(parameters), m_ExecutingFunction(function) {}
 
 	void Execute() override
 	{
-		BindingSystem<Types...>::m_Binding->ApplyFunctionOnAll(m_ExecutingFunction);
+		BindingSystem<Components...>::m_Binding->ApplyFunctionOnAll(m_ExecutingFunction);
 	}
 
 private:
 
-	std::function<void(Types&...)> m_ExecutingFunction;
+	std::function<void(Components&...)> m_ExecutingFunction;
 
 };

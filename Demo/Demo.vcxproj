@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{31507c62-7680-4b1e-a0f0-7c427f8b66c3}</ProjectGuid>
+    <RootNamespace>Demo</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(ProjectDir)exe\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(ProjectDir)exe\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)exe\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)exe\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>echo Copying .dll files
+robocopy "$(ProjectDir)3rdParty\glew-2.1.0\bin\Release\$(Platform) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget) " "$(OutputPath) " SDL2.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " Microsoft.DTfW.DHL.manifest /njh /njs /ndl /nc /ns /np /xo
+robocopy "$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+EXIT /B 0</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>echo Copying .dll files
+robocopy "$(ProjectDir)3rdParty\glew-2.1.0\bin\Release\$(Platform) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget) " "$(OutputPath) " SDL2.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " Microsoft.DTfW.DHL.manifest /njh /njs /ndl /nc /ns /np /xo
+robocopy "$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+EXIT /B 0</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>echo Copying .dll files
+robocopy "$(ProjectDir)3rdParty\glew-2.1.0\bin\Release\$(Platform) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget) " "$(OutputPath) " SDL2.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " Microsoft.DTfW.DHL.manifest /njh /njs /ndl /nc /ns /np /xo
+robocopy "$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+EXIT /B 0</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>echo Copying .dll files
+robocopy "$(ProjectDir)3rdParty\glew-2.1.0\bin\Release\$(Platform) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget) " "$(OutputPath) " SDL2.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+robocopy "$(ProjectDir)3rdParty\vld\bin\$(PlatformTarget) " "$(OutputPath) " Microsoft.DTfW.DHL.manifest /njh /njs /ndl /nc /ns /np /xo
+robocopy "$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget) " "$(OutputPath) " *.dll /njh /njs /ndl /nc /ns /np /xo /nfl
+EXIT /B 0</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="RenderingInput\SDLOpenGl.cpp" />
+    <ClCompile Include="Shader\Shader.cpp" />
+    <ClCompile Include="Shader\Texture.cpp" />
+    <ClCompile Include="Systems\DynamicSystems.cpp" />
+    <ClCompile Include="Systems\RenderingSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="3rdParty\stb_image\stb_connected_components.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_c_lexer.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_divide.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_ds.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_dxt.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_easy_font.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_herringbone_wang_tile.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_hexwave.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_image.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_image_resize.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_image_write.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_include.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_leakcheck.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_rect_pack.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_sprintf.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_textedit.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_tilemap_editor.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_truetype.h" />
+    <ClInclude Include="3rdParty\stb_image\stb_voxel_render.h" />
+    <ClInclude Include="Components\Render.h" />
+    <ClInclude Include="Components\RenderModifiers.h" />
+    <ClInclude Include="Components\TransformModifiers.h" />
+    <ClInclude Include="RenderingInput\SDLOpenGl.h" />
+    <ClInclude Include="Components\Transform.h" />
+    <ClInclude Include="Shader\Shader.h" />
+    <ClInclude Include="Shader\Texture.h" />
+    <ClInclude Include="Systems\DynamicSystems.h" />
+    <ClInclude Include="Systems\RenderingSystem.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

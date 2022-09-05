@@ -5,6 +5,7 @@
 
 #include "TypeViewBase.h"
 #include "../Entity/Entity.h"
+#include "../TypeInformation/TypeInformation.h"
 
 class EntityRegistry;
 
@@ -163,6 +164,10 @@ public:
 
 	bool Contains(uint32_t typeId) const;
 
+	void PrintTypes(std::ostream& stream);
+
+	size_t GetSize() const { return m_ContainedEntities.size(); }
+
 private:
 
 	void Initialize();
@@ -192,7 +197,7 @@ bool TypeBinding::Assert() const
 	auto typeIds = reflection::Type_ids<Types...>();
 	for (size_t i{}; i < m_TypesAmount; ++i)
 	{
-		if (typeIds[i] != m_pTypes[i])
+		if (typeIds[i] != m_pTypes[i] && !TypeInformation::IsSubClass(m_pTypes[i], typeIds[i]))
 			return false;
 	}
 	return true;

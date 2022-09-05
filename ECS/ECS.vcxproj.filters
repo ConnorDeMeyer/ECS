@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ECS.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Registry\EntityRegistry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -28,6 +25,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Registry\TypeBinding.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TypeInformation\TypeInformation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialize\Serializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,25 +44,16 @@
     <ClInclude Include="Registry\TypeView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TestClasses\Transform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TypeInformation\reflection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Registry\TypeBinding.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TestClasses\Render.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Registry\TypeViewBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Allocators\ObjectPoolAllocator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TestClasses\gameComponentTest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sorting\SmoothSort.h">
@@ -83,10 +77,10 @@
     <ClInclude Include="System\SystemBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TestClasses\RenderingSystem.h">
+    <ClInclude Include="TypeInformation\ECSTypeInformation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TypeInformation\ECSTypeInformation.h">
+    <ClInclude Include="Serialize\Serializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

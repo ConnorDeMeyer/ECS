@@ -7,17 +7,18 @@
 #include <functional>
 #include <ranges>
 
+#include "../TypeInformation/reflection.h"
 #include "../Allocators/ObjectPoolAllocator.h"
 #include "../Sorting/SmoothSort.h"
 #include "TypeViewBase.h"
 
 /** If the Serializable function given T as value type exists*/
 template <typename T>
-concept Serializable = requires(std::ofstream& fstream, T val){ val.Serialize(fstream); };
+concept Serializable = requires(std::ostream& stream, T val){ val.Serialize(stream); };
 
 /** If the Deserializable function given T as value type exists*/
 template <typename T>
-concept Deserializable = requires(std::ifstream& fstream, T val){ val.Deserialize(fstream); };
+concept Deserializable = requires(std::istream& stream, T val){ val.Deserialize(stream); };
 
 /** If the type is both Serializable and Deserializable*/
 template <typename T>
@@ -112,9 +113,11 @@ public:
 
 	uint32_t GetTypeId() const override { return reflection::type_id<T>(); }
 
-	void SerializeView(std::ofstream& stream) override;
+	void SerializeView(std::ostream& stream) override;
 
-	void DeserializeView(std::ifstream& stream) override;
+	void DeserializeView(std::istream& stream) override;
+
+	void PrintType(std::ostream& stream) override;
 
 private:
 
@@ -361,7 +364,7 @@ void TypeView<T>::SetActive(const T* element)
 }
 
 template <typename T>
-void TypeView<T>::SerializeView(std::ofstream& stream)
+void TypeView<T>::SerializeView(std::ostream& stream)
 {
 	stream << GetSize();
 	stream.write(reinterpret_cast<const char*>(m_DataEntityMap.data()), GetSize() * sizeof(entityId));
@@ -375,7 +378,7 @@ void TypeView<T>::SerializeView(std::ofstream& stream)
 }
 
 template <typename T>
-void TypeView<T>::DeserializeView(std::ifstream& stream)
+void TypeView<T>::DeserializeView(std::istream& stream)
 {
 	assert(GetSize() == 0);
 
@@ -393,6 +396,12 @@ void TypeView<T>::DeserializeView(std::ifstream& stream)
 	else
 		stream.read(reinterpret_cast<char*>(m_Data.data()), size * sizeof(T));
 
+}
+
+template <typename T>
+void TypeView<T>::PrintType(std::ostream& stream)
+{
+	stream << '[' << reflection::type_name<T>() << ']';
 }
 
 template <typename T>
