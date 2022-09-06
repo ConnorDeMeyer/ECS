@@ -29,7 +29,7 @@ public:
 	//template <typename System>
 	//static void AddSystem() requires (std::is_base_of_v<SystemBase, System> && SystemSimpleConstructor<System>);
 
-	static const std::unordered_map<int32_t, std::function<TypeViewBase* (EntityRegistry*)>>& GetTypeViewAdders() { return GetInstance().TypeViewAdder; }
+	static const std::unordered_map<uint32_t, std::function<TypeViewBase* (EntityRegistry*)>>& GetTypeViewAdders() { return GetInstance().TypeViewAdder; }
 	static const std::unordered_map<std::string, std::function<void(EntityRegistry*)>>& GetSystemAdders() { return GetInstance().SystemAdder; }
 
 private:
@@ -40,7 +40,7 @@ private:
 		return info;
 	}
 
-	std::unordered_map<int32_t, std::function<TypeViewBase* (EntityRegistry*)>> TypeViewAdder;
+	std::unordered_map<uint32_t, std::function<TypeViewBase* (EntityRegistry*)>> TypeViewAdder;
 	std::unordered_map<std::string, std::function<void(EntityRegistry*)>> SystemAdder;
 };
 

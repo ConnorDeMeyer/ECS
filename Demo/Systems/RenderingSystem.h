@@ -14,7 +14,7 @@ class RenderingSystem : public ViewSystem<Render>
 public:
 
 	RenderingSystem(const SystemParameters& parameters);
-	~RenderingSystem();
+	~RenderingSystem() override;
 
 	void Execute() override;
 

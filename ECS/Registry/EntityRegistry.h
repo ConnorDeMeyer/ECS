@@ -45,117 +45,178 @@ public:
 	 * SYSTEMS
 	 */
 
+	/** Add Dynamic View System to the Registry*/
 	template <typename Type>
 	void AddSystem(const SystemParameters& parameters, const std::function<void(Type&)>& function);
 
+	/** Add Dynamic Binding System to the Registry*/
 	template <typename... Types>
 	void AddSystem(const SystemParameters& parameters, const std::function<void(Types&...)>& function) requires (sizeof...(Types) >= 2);
 
+	/** Add the specific System to the Registry given as the template parameter*/
 	template <typename System>
 	void AddSystem(const SystemParameters& parameters) requires std::is_base_of_v<SystemBase, System>;
 
+	/**
+	 * Add a System to the registry given the name of the system
+	 * The System has to be registered using the RegisterSystem<System>() or RegisterDynamicSystem(function)
+	 * Look at TypeInformation/TypeInfoGenerator.h for more info
+	 */
 	void AddSystem(const std::string& name);
 
-	void PrintSystems() const;
+	/** Prints the names of the added Systems to the stream*/
 	void PrintSystems(std::ostream& stream) const;
+	/** Prints the names of the added Systems to the console*/
+	void PrintSystems() const;
 
-	void PrintSystemInformation() const;
+	/**
+	 * Prints information about each registered system to the console. Information includes:
+	 *  - Name of the system
+	 *	- When the system executes compared to other systems
+	 *	- The time it takes for systems to update
+	 * Additionally if macro SYSTEM_PROFILE is defined:
+	 *  - How many times the system has executed
+	 *  - The time it takes to execute the system once
+	 *	- The time to execute the system divided by the amount of Components inside the System
+	 */
 	void PrintSystemInformation(std::ostream& stream) const;
+	/** Prints information about the registered Systems to the console*/
+	void PrintSystemInformation() const;
 
+	/**
+	 * Removes the System from the registry given its name
+	 */
 	void RemoveSystem(std::string name);
 
 	/**
 	 * VIEWS
 	 */
 
+	/**
+	 * Adds the view to the Registry given the typeId (reflection::typeId<Component>()) of the Component.
+	 * For this to work the Component should have been registered before hand using RegisterClass<> found in TypeInfoGenerator.h
+	 */
 	TypeViewBase* AddView(uint32_t typeId);
 
+	/** Returns the type view that corresponds with the typeId (reflection::typeId<Component>()) of the class.*/
 	TypeViewBase* GetTypeView(uint32_t typeId) const;
 
+	/**
+	 * Returns the type view that corresponds with the typeId (reflection::typeId<Component>()) of the class
+	 * If the View does not exist in the Registry it will create it.
+	 */
 	TypeViewBase* GetOrCreateView(uint32_t typeId);
 
-	template <typename T>
-	TypeView<T>& AddView();
+	/** Adds the Type View to the Registry given the Component class.*/
+	template <typename Component>
+	TypeView<Component>& AddView();
 
-	template <typename T>
-	TypeView<T>& GetTypeView() const;
+	/** Gets the Type View corresponding with the given Component type*/
+	template <typename Component>
+	TypeView<Component>& GetTypeView() const;
 
-	template <typename T>
-	TypeView<T>& GetOrCreateView();
+	/**
+	 * Gets the Type View corresponding with the given Component type.
+	 * If the View is not in the Registry it will create it.
+	 */
+	template <typename Component>
+	TypeView<Component>& GetOrCreateView();
 
 	/**
 	 * ENTITIES
 	 */
 
+	/** Creates an Entity that is linked to the Registry*/
 	Entity CreateEntity();
 
+	/** Removes the Entity from the Registry and removes its components*/
 	void RemoveEntity(const Entity& entity);
 	void RemoveEntity(entityId id);
 
+	/** Gets the container with all the Entities*/
 	const std::unordered_set<entityId>& GetEntities() const { return m_Entities; }
 
+	/** Gets the entity from the Registry or creates it if it does not exist in the Registry*/
 	const Entity CreateOrGetEntity(entityId id);
 
 	/**
 	 * BINDINGS
 	 */
 
-	template <typename... Types>
+	/** Add a Type Binding to the Registry. If one already exists using the same Components but in a different order this method will assert*/
+	template <typename... Components>
 	TypeBinding* AddBinding();
 
+	/** Add a Type Binding using TypeIds instead of templates*/
 	TypeBinding* AddBinding(const uint32_t* typeIds, size_t size);
 
-	template <typename... Types>
+	/** Gets the Type Binding corresponding the Given Components*/
+	template <typename... Components>
 	[[nodiscard]] TypeBinding* GetBinding();
 
+	/** Returns the Type Binding corresponding to the given TypeIds*/
 	[[nodiscard]] TypeBinding* GetBinding(const uint32_t* types, const size_t size) const;
 
+	/**
+	 * Returns the Type Binding corresponding to the given TypeIds.
+	 * If the Type Binding does not exist it will create it.
+	 */
 	[[nodiscard]] TypeBinding* GetOrCreateBinding(const uint32_t* types, const size_t size);
 
-	template <typename... Types>
+	/**
+	 * Returns the Type Binding corresponding to the given Components.
+	 * If the Type Binding does not exist it will create it.
+	 */
+	template <typename... Components>
 	[[nodiscard]] TypeBinding* GetOrCreateBinding();
 
 	/**
 	 * MISC
 	 */
 
+	/** Updates the Registry using delta Time.*/
 	void Update(float deltaTime);
 
+	/** Serializes the Registry to the given stream.*/
 	void Serialize(std::ostream& stream) const;
 
+	/** Deserialize the Registry from the given stream.*/
 	void Deserialize(std::istream& stream);
 
 	/**
 	 * COMPONENTS
 	 */
 
-	template <typename T>
-	Reference<T> GetComponent(const Entity& entity);
+	/** Gets the Component that is attached to the given entity*/
+	template <typename Component>
+	Reference<Component> GetComponent(const Entity& entity);
+	template <typename Component>
+	Reference<Component> GetComponent(entityId id);
 
-	template <typename T>
-	Reference<T> GetComponent(entityId id);
+	/** Adds a Component to the given entity*/
+	template <typename Component>
+	Reference<Component> AddComponentInstantly(const Entity& entity);
+	template <typename Component>
+	Reference<Component> AddComponentInstantly(entityId id);
 
-	template <typename T>
-	Reference<T> AddComponentInstantly(entityId id);
+	/** Adds the component to the given entity at the end of the Update cycle*/
+	template <typename Component>
+	Component* AddComponent(const Entity& entity);
+	template <typename Component>
+	Component* AddComponent(entityId id);
 
-	template <typename T>
-	Reference<T> AddComponentInstantly(Entity entity);
-
-	template <typename T>
-	T* AddComponent(entityId id);
-
-	template <typename T>
-	T* AddComponent(Entity entity);
-
-	template <typename T>
+	/** Removes the component from the given Entity*/
+	template <typename Component>
+	void RemoveComponent(const Entity& entity);
+	template <typename Component>
 	void RemoveComponent(entityId id);
-
-	template <typename T>
-	void RemoveComponent(Entity entity);
 
 private:
 
-	/** Systems*/
+	/**
+	 * Systems Helper function
+	 */
+
 	template <typename Component>
 	void AddDynamicViewSubSystems(const SystemParameters& parameters, const std::function<void(Component&)>& function);
 
@@ -212,18 +273,6 @@ private:
 #endif
 };
 
-//template <typename T>
-//TypeView<T>& EntityRegistry::GetView()
-//{
-//	auto it = m_TypeViews.find(reflection::type_id<T>());
-//	if (it != m_TypeViews.end())
-//	{
-//		return *reinterpret_cast<TypeView<T>*>(it->second);
-//	}
-//
-//	throw std::runtime_error("View was not found inside of registry");
-//}
-
 template <typename Component>
 void EntityRegistry::AddSystem(const SystemParameters& parameters, const std::function<void(Component&)>& function)
 {
@@ -273,24 +322,34 @@ void EntityRegistry::AddSystem(const SystemParameters& parameters) requires std:
 	}
 }
 
-template <typename T>
-TypeView<T>& EntityRegistry::AddView()
+template <typename Component>
+TypeView<Component>& EntityRegistry::AddView()
 {
-	auto view = new TypeView<T>(this);
-	constexpr uint32_t typeId{ reflection::type_id<T>() };
+	auto view = new TypeView<Component>(this);
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
 	m_TypeViews.emplace(typeId, view);
 
 	return *view;
 }
 
-template <typename T>
-TypeView<T>& EntityRegistry::GetOrCreateView()
+template <typename Component>
+TypeView<Component>& EntityRegistry::GetTypeView() const
 {
-	auto it = m_TypeViews.find(reflection::type_id<T>());
+	auto it = m_TypeViews.find(reflection::type_id<Component>());
 	if (it != m_TypeViews.end())
-		return *reinterpret_cast<TypeView<T>*>(it->second.get());
+		return *reinterpret_cast<TypeView<Component>*>(it->second.get());
+
+	throw std::runtime_error("Type View not in registry");
+}
+
+template <typename Component>
+TypeView<Component>& EntityRegistry::GetOrCreateView()
+{
+	auto it = m_TypeViews.find(reflection::type_id<Component>());
+	if (it != m_TypeViews.end())
+		return *reinterpret_cast<TypeView<Component>*>(it->second.get());
 	else
-		return AddView<T>();
+		return AddView<Component>();
 }
 
 template <typename ... Types>
@@ -344,7 +403,7 @@ Reference<T> EntityRegistry::AddComponentInstantly(entityId id)
 }
 
 template <typename T>
-Reference<T> EntityRegistry::AddComponentInstantly(Entity entity)
+Reference<T> EntityRegistry::AddComponentInstantly(const Entity& entity)
 {
 	return AddComponentInstantly<T>(entity.GetId());
 }
@@ -369,7 +428,7 @@ T* EntityRegistry::AddComponent(entityId id)
 }
 
 template <typename T>
-T* EntityRegistry::AddComponent(Entity entity)
+T* EntityRegistry::AddComponent(const Entity& entity)
 {
 	return AddComponent<T>(entity.GetId());
 }
@@ -381,7 +440,7 @@ void EntityRegistry::RemoveComponent(entityId id)
 }
 
 template <typename T>
-void EntityRegistry::RemoveComponent(Entity entity)
+void EntityRegistry::RemoveComponent(const Entity& entity)
 {
 	RemoveComponent<T>(entity.GetId());
 }

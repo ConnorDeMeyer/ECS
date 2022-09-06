@@ -13,12 +13,11 @@
 #include "Components/Transform.h"
 #include "Components/TransformModifiers.h"
 
-#include "Systems/DynamicSystems.h"
-
 #include <SDL.h>
 
 void ProcessInput();
 
+#define REGISTRY_DESERIALIZE
 
 int main(int, char* [])
 {
@@ -34,16 +33,25 @@ int main(int, char* [])
 	SDL::SetInputCallback(SDLK_p, [&registry]() {registry.PrintSystemInformation(); });
 	SDL::SetInputCallback(SDLK_o, [&registry]()
 		{
-			std::ofstream stream("DemoSerialized");
+			std::ofstream stream("DemoSerialized", std::ios::binary | std::ios::out);
 			registry.Serialize(stream);
 			std::cout << "Serialized to \"DemoSerialized\"";
 		});
 
 #ifdef REGISTRY_DESERIALIZE
 
-	std::ifstream stream("DemoSerialized");
-	registry.Deserialize(stream);
-
+	std::ifstream stream("DemoSerialized", std::ios::binary | std::ios::in);
+	stream.exceptions(std::ifstream::failbit);
+	stream.exceptions(std::ifstream::end);
+	try
+	{
+		registry.Deserialize(stream);
+	}
+	catch (const std::exception& fail)
+	{
+		std::cerr << "ERROR:" << fail.what() << '\n';
+		return 1;
+	}
 #else
 
 	registry.AddSystem("RenderingSystem");

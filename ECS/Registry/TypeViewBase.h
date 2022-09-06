@@ -300,6 +300,6 @@ protected:
 	EntityRegistry* m_pRegistry{};
 
 	ViewDataFlag m_DataFlag{ ViewDataFlag::valid };
-	uint16_t m_DataFlagId{ 42 };
-
+	uint16_t m_DataFlagId{ 1 };
+	
 };

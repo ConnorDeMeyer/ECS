@@ -113,7 +113,7 @@ class ObjectPoolAllocator final
 {
 public:
 
-	ObjectPoolAllocator(size_t chunkSize = 32)
+	ObjectPoolAllocator(size_t chunkSize = 256)
 		: ChunkSize{ chunkSize }
 	{
 		m_Chunks.reserve(16);

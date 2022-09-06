@@ -50,6 +50,7 @@ class RegisterSystem final
 public:
 	RegisterSystem(const SystemParameters& parameters)
 	{
+		std::cout << "Registering " << parameters.name << '\n';
 		auto it = Generator.find(parameters.name);
 		if (it == Generator.end())
 		{
@@ -75,6 +76,7 @@ class RegisterDynamicSystem final
 public:
 	RegisterDynamicSystem(const SystemParameters& parameters, const std::function<void(Types&...)>& function)
 	{
+		std::cout << "Registering " << parameters.name << '\n';
 		auto it = Generator.find(parameters.name);
 		if (it == Generator.end())
 		{

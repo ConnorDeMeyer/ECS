@@ -152,13 +152,13 @@ public:
 	const EntityRegistry* GetRegistry() const { return m_pRegistry; }
 
 	template <typename... Types>
-	void ApplyFunction(const std::function<void(Types&...)>& function, size_t pos) const;
+	void ApplyFunction(const std::function<void(Types&...)>& function, size_t pos);
 
 	template <typename... Types>
-	void ApplyFunctionOnEntity(const std::function<void(Types&...)>& function, entityId id) const;
+	void ApplyFunctionOnEntity(const std::function<void(Types&...)>& function, entityId id);
 
 	template <typename... Types>
-	void ApplyFunctionOnAll(const std::function<void(Types&...)>& function) const;
+	void ApplyFunctionOnAll(const std::function<void(Types&...)>& function);
 
 	bool Compare(const uint32_t* types, size_t size) const;
 
@@ -204,13 +204,13 @@ bool TypeBinding::Assert() const
 }
 
 template <typename ... Types>
-void TypeBinding::ApplyFunctionOnEntity(const std::function<void(Types&...)>& function, entityId id) const
+void TypeBinding::ApplyFunctionOnEntity(const std::function<void(Types&...)>& function, entityId id) 
 {
 	ApplyFunction(function, GetEntityPos(id));
 }
 
 template <typename ... Types>
-void TypeBinding::ApplyFunctionOnAll(const std::function<void(Types&...)>& function) const
+void TypeBinding::ApplyFunctionOnAll(const std::function<void(Types&...)>& function) 
 {
 	const size_t size{ m_Data.size() / m_TypesAmount };
 	for (size_t i{}; i < size; ++i)
@@ -220,7 +220,7 @@ void TypeBinding::ApplyFunctionOnAll(const std::function<void(Types&...)>& funct
 }
 
 template <typename ... Types>
-void TypeBinding::ApplyFunction(const std::function<void(Types&...)>& function, size_t pos) const
+void TypeBinding::ApplyFunction(const std::function<void(Types&...)>& function, size_t pos) 
 {
 	assert(sizeof...(Types) == m_TypesAmount);
 	assert(Assert<Types...>());

@@ -11,12 +11,13 @@
 #include "../Allocators/ObjectPoolAllocator.h"
 #include "../Sorting/SmoothSort.h"
 #include "TypeViewBase.h"
+#include "../Serialize/Serializer.h"
 
-/** If the Serializable function given T as value type exists*/
+/** If the Serializable function given Component as value type exists*/
 template <typename T>
 concept Serializable = requires(std::ostream& stream, T val){ val.Serialize(stream); };
 
-/** If the Deserializable function given T as value type exists*/
+/** If the Deserializable function given Component as value type exists*/
 template <typename T>
 concept Deserializable = requires(std::istream& stream, T val){ val.Deserialize(stream); };
 
@@ -61,7 +62,7 @@ public:
 	/** Moves the data instance into the contiguous array that is kept by this class*/
 	Reference<T> Add(entityId id, T&& data);
 
-	/** Creates an instance of type T and emplaces it into the contiguous array that is kept by this class*/
+	/** Creates an instance of type Component and emplaces it into the contiguous array that is kept by this class*/
 	Reference<T> Add(entityId id);
 
 	Reference<T> Add(Entity entity);
@@ -71,7 +72,7 @@ public:
 	T* AddAfterUpdate(Entity entity);
 
 	/**
-	 * Removes the associated instance of type T from the array using a swap remove
+	 * Removes the associated instance of type Component from the array using a swap remove
 	 * This will invalidate the order of the array if it was sorted
 	 */
 	void Remove(entityId id) override;
@@ -87,7 +88,7 @@ public:
 	/** Returns the amount of inactive elements inside of the view.*/
 	size_t GetInactiveAmount() const { return m_InactiveItems; }
 
-	/** Returns the array of instances of Type T stored inside of the view*/
+	/** Returns the array of instances of Type Component stored inside of the view*/
 	const T* GetData() const { return m_Data.data(); }
 
 	/** Returns the start iterator of the data*/
@@ -99,13 +100,13 @@ public:
 	/** Returns the end of the array, including the inactive items*/
 	auto arrayEnd() { return m_Data.end(); }
 
-	/** Sets the associated instance of type T inactive*/
+	/** Sets the associated instance of type Component inactive*/
 	void SetInactive(entityId id);
 
 	/** Sets the element inactive*/
 	void SetInactive(const T* element);
 
-	/** Sets the associated instance of type T active*/
+	/** Sets the associated instance of type Component active*/
 	void SetActive(entityId id);
 
 	/** Sets the element active*/
@@ -363,39 +364,59 @@ void TypeView<T>::SetActive(const T* element)
 	--m_InactiveItems;
 }
 
-template <typename T>
-void TypeView<T>::SerializeView(std::ostream& stream)
+template <typename Component>
+void TypeView<Component>::SerializeView(std::ostream& stream)
 {
-	stream << GetSize();
+	WriteStream(stream, GetSize());
+
+	// Serialize the Data Entity map
 	stream.write(reinterpret_cast<const char*>(m_DataEntityMap.data()), GetSize() * sizeof(entityId));
 
-	if constexpr ( Streamable<T> )
+	// Serialize all the Components
+	if constexpr ( Streamable<Component> )
 		for (auto& element : m_Data)
+			// If the component has a Serialize function, use that one
 			element.Serialize(stream);
-	else
-		stream.write(reinterpret_cast<const char*>(m_Data.data()), m_Data.size() * sizeof(T));
-	
+	else 
+		// else just copy all the data
+		stream.write(reinterpret_cast<const char*>(m_Data.data()), m_Data.size() * sizeof(Component));
 }
 
 template <typename T>
 void TypeView<T>::DeserializeView(std::istream& stream)
 {
-	assert(GetSize() == 0);
+	assert(GetSize() == 0); // Check if view is empty
 
 	size_t size{};
-	stream >> size;
+	ReadStream(stream, size);
 
+	// Resize the vectors
 	ResizeDataEntityMap(size);
 	m_Data.resize(size);
 
+	// Get all entities
 	stream.read(reinterpret_cast<char*>(m_DataEntityMap.data()), size * sizeof(entityId));
 
+	// Deserialize the elements or copy the data if they dont have a Deserialize function
 	if constexpr ( Streamable<T> )
 		for (auto& element : m_Data)
 			element.Deserialize(stream);
 	else
 		stream.read(reinterpret_cast<char*>(m_Data.data()), size * sizeof(T));
 
+	// Fill containers, create references, and create maps for each entity
+	for (size_t i{}; i < size; ++i)
+	{
+		// create the references
+		auto reference = m_ReferencePool.allocate();
+		reference->m_ptr = &m_Data[i];
+
+		// insert into entity data map
+		m_EntityDataReferences.emplace(m_DataEntityMap[i], reference);
+
+		for (auto& onAdd : OnElementAdd)
+			onAdd(this, m_DataEntityMap[i]);
+	}
 }
 
 template <typename T>

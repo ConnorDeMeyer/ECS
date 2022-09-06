@@ -263,15 +263,17 @@ void EntityRegistry::Update(float deltaTime)
 
 void EntityRegistry::Serialize(std::ostream& stream) const
 {
-	WriteStream(stream, m_TypeViews.size());
 
 	WriteStream(stream, m_Systems.size());
 	PrintSystems(stream);
-
+	
 	WriteStream(stream, m_Entities.size());
-	for (auto& entity : m_Entities)
+	for (auto entity : m_Entities)
+	{
 		WriteStream(stream, entity);
+	}
 
+	WriteStream(stream, m_TypeViews.size());
 	for (auto& typeView : m_TypeViews)
 	{
 		WriteStream(stream, typeView.first);
@@ -281,9 +283,6 @@ void EntityRegistry::Serialize(std::ostream& stream) const
 
 void EntityRegistry::Deserialize(std::istream& stream)
 {
-	size_t viewsAmount{};
-	ReadStream(stream, viewsAmount);
-
 	size_t systemAmount{};
 	ReadStream(stream, systemAmount);
 	for (size_t i{}; i < systemAmount; ++i)
@@ -302,6 +301,8 @@ void EntityRegistry::Deserialize(std::istream& stream)
 		m_Entities.emplace(id);
 	}
 
+	size_t viewsAmount{};
+	ReadStream(stream, viewsAmount);
 	for (size_t i{}; i < viewsAmount; ++i)
 	{
 		uint32_t id;
