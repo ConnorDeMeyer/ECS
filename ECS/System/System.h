@@ -2,6 +2,7 @@
 #include "SystemBase.h"
 #include "../Registry/TypeView.h"
 #include "../Registry/TypeBinding.h"
+#include "../TypeInformation/Concepts.h"
 
 
 /**
@@ -60,12 +61,6 @@ protected:
 
 };
 
-template <typename Class>
-concept isBindingSystem = std::is_base_of_v<SystemBase, Class> && requires(Class sys) { sys.GetTypeBinding(); };
-
-template <typename Class>
-concept isViewSystem = std::is_base_of_v<SystemBase, Class> && requires(Class sys) { sys.GetTypeView(); };
-
 /**
  * View System that can be initialized using a function taking the reference of the component.
  * This will call the function on every component when the Execute() method is called.
@@ -88,6 +83,26 @@ private:
 };
 
 /**
+ * Same as ViewSystemDynamic but the first parameter is deltaTime
+ */
+template <typename Component>
+class ViewSystemDynamicDT final : public ViewSystem<Component>
+{
+public:
+	ViewSystemDynamicDT(const SystemParameters& parameters, std::function<void(float, Component&)> function) : ViewSystem<Component>(parameters), m_ExecutingFunction(function) {}
+
+	void Execute() override
+	{
+		for (auto& element : *ViewSystem<Component>::m_TypeView)
+			m_ExecutingFunction(SystemBase::GetDeltaTime(), element);
+	}
+
+private:
+
+	std::function<void(float, Component&)> m_ExecutingFunction;
+};
+
+/**
  * Binding system that can be initialized using a function taking the references of the components.
  * This will call the function on every element of the TypeBinding when the Execute() method is called.
  */
@@ -105,5 +120,25 @@ public:
 private:
 
 	std::function<void(Components&...)> m_ExecutingFunction;
+
+};
+
+/**
+ * Same as BindingSystemDynamic but the first parameter is deltaTime
+ */
+template <typename... Components>
+class BindingSystemDynamicDT final : public BindingSystem<Components...>
+{
+public:
+	BindingSystemDynamicDT(const SystemParameters& parameters, const std::function<void(float, Components&...)>& function) : BindingSystem<Components...>(parameters), m_ExecutingFunction(function) {}
+
+	void Execute() override
+	{
+		BindingSystem<Components...>::m_Binding->ApplyFunctionOnAllDT(m_ExecutingFunction, SystemBase::GetDeltaTime());
+	}
+
+private:
+
+	std::function<void(float, Components&...)> m_ExecutingFunction;
 
 };

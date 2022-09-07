@@ -6,34 +6,27 @@
 #include <algorithm>
 #include <functional>
 #include <ranges>
+#include <string>
 
 #include "../TypeInformation/reflection.h"
 #include "../Allocators/ObjectPoolAllocator.h"
 #include "../Sorting/SmoothSort.h"
 #include "TypeViewBase.h"
 #include "../Serialize/Serializer.h"
-
-/** If the Serializable function given Component as value type exists*/
-template <typename T>
-concept Serializable = requires(std::ostream& stream, T val){ val.Serialize(stream); };
-
-/** If the Deserializable function given Component as value type exists*/
-template <typename T>
-concept Deserializable = requires(std::istream& stream, T val){ val.Deserialize(stream); };
-
-/** If the type is both Serializable and Deserializable*/
-template <typename T>
-concept Streamable = Serializable<T> && Deserializable<T>;
-
-/** If a Class should be initialized it can be given the Initialize function which will be called when it is placed inside of the Type View*/
-template <typename T>
-concept Initializable = requires(class EntityRegistry* registry, T val) { val.Initialize(registry); };
+#include "../TypeInformation/Concepts.h"
+#include "../TypeInformation/TypeInformation.h"
 
 inline bool SortCompare(const int& i0, const int& i1) { return i0 < i1; }
 
-template <typename T>
+template <typename Component>
 class TypeView : public TypeViewBase
 {
+public:
+
+	using ComponentType = Component;
+
+	constexpr static float ReferenceRemovalInterval{ 1 };
+
 public:
 
 	TypeView(EntityRegistry* pRegistry) : TypeViewBase(pRegistry) {}
@@ -46,30 +39,30 @@ public:
 
 public:
 
-	void Update() override;
+	void Update(float deltaTime) override;
 
-	entityId GetId(const T* element) const;
+	entityId GetId(const Component* element) const;
 
 	entityId GetEntityId(const void* elementAddress) override;
 
-	Reference<T> Get(entityId id) const;
+	Reference<Component> Get(entityId id) const;
 
 	VoidReference GetVoidReference(entityId id) const override;
 
 	/** Copies the data instance into the contiguous array that is kept by this class*/
-	Reference<T> Add(entityId id, const T& data);
+	Reference<Component> Add(entityId id, const Component& data);
 
 	/** Moves the data instance into the contiguous array that is kept by this class*/
-	Reference<T> Add(entityId id, T&& data);
+	Reference<Component> Add(entityId id, Component&& data);
 
 	/** Creates an instance of type Component and emplaces it into the contiguous array that is kept by this class*/
-	Reference<T> Add(entityId id);
+	Reference<Component> Add(entityId id);
 
-	Reference<T> Add(Entity entity);
+	Reference<Component> Add(Entity entity);
 
-	T* AddAfterUpdate(entityId id);
+	Component* AddAfterUpdate(entityId id);
 
-	T* AddAfterUpdate(Entity entity);
+	Component* AddAfterUpdate(Entity entity);
 
 	/**
 	 * Removes the associated instance of type Component from the array using a swap remove
@@ -89,13 +82,13 @@ public:
 	size_t GetInactiveAmount() const { return m_InactiveItems; }
 
 	/** Returns the array of instances of Type Component stored inside of the view*/
-	const T* GetData() const { return m_Data.data(); }
+	const Component* GetData() const { return m_Data.data(); }
 
 	/** Returns the start iterator of the data*/
-	auto begin() { return VoidIteratorType<T>(m_Data.data(), m_ElementSize); }
+	auto begin() { return VoidIteratorType<Component>(m_Data.data(), m_ElementSize); }
 
 	/** Returns the end of the iterator without inactive items*/
-	auto end() { return VoidIteratorType<T>(m_Data.data() + m_Data.size(), m_ElementSize) - m_InactiveItems; }
+	auto end() { return VoidIteratorType<Component>(m_Data.data() + m_Data.size(), m_ElementSize) - m_InactiveItems; }
 
 	/** Returns the end of the array, including the inactive items*/
 	auto arrayEnd() { return m_Data.end(); }
@@ -104,15 +97,15 @@ public:
 	void SetInactive(entityId id);
 
 	/** Sets the element inactive*/
-	void SetInactive(const T* element);
+	void SetInactive(const Component* element);
 
 	/** Sets the associated instance of type Component active*/
 	void SetActive(entityId id);
 
 	/** Sets the element active*/
-	void SetActive(const T* element);
+	void SetActive(const Component* element);
 
-	uint32_t GetTypeId() const override { return reflection::type_id<T>(); }
+	uint32_t GetTypeId() const override { return reflection::type_id<Component>(); }
 
 	void SerializeView(std::ostream& stream) override;
 
@@ -127,7 +120,7 @@ private:
 	VoidIterator GetVoidIteratorEnd() override;
 
 	/** Creates a map between the id and the data and vice-versa*/
-	Reference<T> AddMap(entityId id, T* data);
+	Reference<Component> AddMap(entityId id, Component* data);
 
 	/** Resizes the DataEntityMap and fills it with invalid ids*/
 	void ResizeDataEntityMap(size_t size);
@@ -153,38 +146,47 @@ private:
 	size_t GetPositionInArray(entityId id) const;
 
 	/** Returns the position of the element inside of the Data array*/
-	size_t GetPositionInArray(const T* data) const;
+	size_t GetPositionInArray(const Component* data) const;
 
 private:
 
-	std::vector<T> m_Data;
-	std::unordered_map<entityId, ReferencePointer<T>*> m_EntityDataReferences;
+	std::vector<Component> m_Data;
+	std::unordered_map<entityId, ReferencePointer<Component>*> m_EntityDataReferences;
 
 	/** Amount of inactive items inside of the array*/
 	size_t m_InactiveItems{};
 
-	ObjectPoolAllocator<ReferencePointer<T>> m_ReferencePool;
+	ObjectPoolAllocator<ReferencePointer<Component>> m_ReferencePool;
 
-	std::vector<ReferencePointer<T>*> m_PendingDeleteReferences;
+	std::vector<ReferencePointer<Component>*> m_PendingDeleteReferences;
 
-	std::vector<std::pair<entityId, T>> m_AddedEntitiesUpdate;
+	std::vector<std::pair<entityId, Component>> m_AddedEntitiesUpdate;
 
-	const size_t m_ElementSize{ sizeof(T) };
+	const size_t m_ElementSize{ sizeof(Component) };
+
+	float m_AccumulatedTime{};
 
 };
 
 template <typename T>
-void TypeView<T>::Update()
+void TypeView<T>::Update(float deltaTime)
 {
-	const size_t size = m_PendingDeleteReferences.size();
-	for (size_t i{}; i < size; ++i)
+	m_AccumulatedTime += deltaTime;
+
+	if (m_AccumulatedTime >= ReferenceRemovalInterval)
 	{
-		auto ref = m_PendingDeleteReferences[size - i - 1];
-		if (ref->GetReferencesAmount() == 0)
+		m_AccumulatedTime -= ReferenceRemovalInterval;
+
+		const size_t size = m_PendingDeleteReferences.size();
+		for (size_t i{}; i < size; ++i)
 		{
-			m_ReferencePool.deallocate(ref);
-			m_PendingDeleteReferences[size - i - 1] = m_PendingDeleteReferences.back();
-			m_PendingDeleteReferences.pop_back();
+			auto ref = m_PendingDeleteReferences[size - i - 1];
+			if (ref->GetReferencesAmount() == 0)
+			{
+				m_ReferencePool.deallocate(ref);
+				m_PendingDeleteReferences[size - i - 1] = m_PendingDeleteReferences.back();
+				m_PendingDeleteReferences.pop_back();
+			}
 		}
 	}
 
@@ -372,18 +374,40 @@ void TypeView<Component>::SerializeView(std::ostream& stream)
 	// Serialize the Data Entity map
 	stream.write(reinterpret_cast<const char*>(m_DataEntityMap.data()), GetSize() * sizeof(entityId));
 
+	//static_assert(std::is_trivially_copyable_v<Component> || Streamable<Component>, 
+	//	"Component has to be trivially copyable (POD) for a Serialize and Deserialize method not to exist for the Component.\n Please define both Serialize(std::ostream&) and Deserialize(std::istream&) methods for the Component");
+
+	// add the size of the serialized data
+	const auto sizePos = stream.tellp();
+	WriteStream(stream, size_t{5}); // write empty size that will later be overriden
+	const auto startPos = stream.tellp();
+
 	// Serialize all the Components
 	if constexpr ( Streamable<Component> )
 		for (auto& element : m_Data)
 			// If the component has a Serialize function, use that one
 			element.Serialize(stream);
-	else 
+	else if constexpr (std::is_trivially_copyable_v<Component>)
 		// else just copy all the data
 		stream.write(reinterpret_cast<const char*>(m_Data.data()), m_Data.size() * sizeof(Component));
+	else
+	{
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		std::cout << "Couldn't Serialize [" << TypeInformation::GetTypeName(typeId) << "] because its not trivially copyable (POD). You may provide your own Serialize(std::ostream&) and Deserialize(std::istream&) methods\n";
+	}
+
+	// end position
+	const auto endPos = stream.tellp();
+	const auto amountWritten{ endPos - startPos };
+	stream.seekp(sizePos);
+	WriteStream(stream, size_t(amountWritten)); // overwrite the previous empty size
+
+	// go back to end
+	stream.seekp(endPos);
 }
 
-template <typename T>
-void TypeView<T>::DeserializeView(std::istream& stream)
+template <typename Component>
+void TypeView<Component>::DeserializeView(std::istream& stream)
 {
 	assert(GetSize() == 0); // Check if view is empty
 
@@ -397,12 +421,33 @@ void TypeView<T>::DeserializeView(std::istream& stream)
 	// Get all entities
 	stream.read(reinterpret_cast<char*>(m_DataEntityMap.data()), size * sizeof(entityId));
 
+	// Get the data size
+	size_t dataSize{};
+	ReadStream(stream, dataSize);
+
+	// get begin position to verify size
+	auto beginPos = stream.tellg();
+
 	// Deserialize the elements or copy the data if they dont have a Deserialize function
-	if constexpr ( Streamable<T> )
+	if constexpr ( Streamable<Component> )
 		for (auto& element : m_Data)
 			element.Deserialize(stream);
+	else if constexpr (std::is_trivially_copyable_v<Component>)
+		stream.read(reinterpret_cast<char*>(m_Data.data()), size * sizeof(Component));
 	else
-		stream.read(reinterpret_cast<char*>(m_Data.data()), size * sizeof(T));
+	{
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		std::cout << "Couldn't Deserialize [" << TypeInformation::GetTypeName(typeId) << "] because its not trivially copyable (POD). You may provide your own Serialize(std::ostream&) and Deserialize(std::istream&) methods\n";
+	}
+
+	// Verify size;
+	auto endPos = stream.tellg();
+	if (endPos - beginPos != dataSize)
+	{
+		auto typeName = TypeInformation::GetTypeName(reflection::type_id<Component>());
+		throw std::runtime_error("Deserializing failed for " + std::string(typeName) + ". Amount of data written ("
+			+ std::to_string(dataSize) + ") was different from amount read (" + std::to_string(endPos - beginPos) + ")");
+	}
 
 	// Fill containers, create references, and create maps for each entity
 	for (size_t i{}; i < size; ++i)

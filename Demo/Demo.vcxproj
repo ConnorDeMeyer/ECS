@@ -228,6 +228,7 @@ EXIT /B 0</Command>
     <ClInclude Include="3rdParty\stb_image\stb_voxel_render.h" />
     <ClInclude Include="Components\Render.h" />
     <ClInclude Include="Components\RenderModifiers.h" />
+    <ClInclude Include="Components\TestClasses.h" />
     <ClInclude Include="Components\TransformModifiers.h" />
     <ClInclude Include="RenderingInput\SDLOpenGl.h" />
     <ClInclude Include="Components\Transform.h" />

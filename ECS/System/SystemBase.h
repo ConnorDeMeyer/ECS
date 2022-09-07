@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <string>
 #include <assert.h>
+#include <bitset>
 
 #include "../Registry/TypeViewBase.h"
 
@@ -15,6 +16,14 @@ enum class ExecutionTime : int32_t
 	LateUpdate = 1000,
 	Render = 2000,
 	LateRender = 3000,
+};
+
+enum class SystemFlags : uint8_t
+{
+	SubSystem = 0,
+	DefaultSystem = 1,
+
+	SIZE,
 };
 
 /**
@@ -72,9 +81,15 @@ public:
 	float GetDeltaTime() const { return m_DeltaTime; }
 	float GetAccumulatedTime() const { return m_AccumulatedTime; }
 
+	bool IsSubSystem() const { return m_Flags[uint8_t(SystemFlags::SubSystem)]; }
+	bool IsDefaulySystem() const { return m_Flags[uint8_t(SystemFlags::DefaultSystem)]; }
+
+	void SetFlag(SystemFlags flag, bool value) { m_Flags[uint8_t(flag)] = value; }
+
 private:
 
 	SystemParameters m_Parameters;
 	float m_DeltaTime;
 	float m_AccumulatedTime;
+	std::bitset<uint8_t(SystemFlags::SIZE)> m_Flags;
 };

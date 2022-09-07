@@ -160,6 +160,15 @@ public:
 	template <typename... Types>
 	void ApplyFunctionOnAll(const std::function<void(Types&...)>& function);
 
+	template <typename... Types>
+	void ApplyFunctionDT(const std::function<void(float, Types&...)>& function, size_t pos, float deltaTime);
+
+	template <typename... Types>
+	void ApplyFunctionOnEntityDT(const std::function<void(float, Types&...)>& function, entityId id, float deltaTime);
+
+	template <typename... Types>
+	void ApplyFunctionOnAllDT(const std::function<void(float, Types&...)>& function, float deltaTime);
+
 	bool Compare(const uint32_t* types, size_t size) const;
 
 	bool Contains(uint32_t typeId) const;
@@ -219,6 +228,23 @@ void TypeBinding::ApplyFunctionOnAll(const std::function<void(Types&...)>& funct
 	}
 }
 
+
+template <typename ... Types>
+void TypeBinding::ApplyFunctionOnEntityDT(const std::function<void(float, Types&...)>& function, entityId id, float deltaTime)
+{
+	ApplyFunctionDT(function, GetEntityPos(id), deltaTime);
+}
+
+template <typename ... Types>
+void TypeBinding::ApplyFunctionOnAllDT(const std::function<void(float, Types&...)>& function, float deltaTime)
+{
+	const size_t size{ m_Data.size() / m_TypesAmount };
+	for (size_t i{}; i < size; ++i)
+	{
+		ApplyFunctionDT(function, i, deltaTime);
+	}
+}
+
 template <typename ... Types>
 void TypeBinding::ApplyFunction(const std::function<void(Types&...)>& function, size_t pos) 
 {
@@ -268,3 +294,51 @@ void TypeBinding::ApplyFunction(const std::function<void(Types&...)>& function, 
 	static_assert(sizeof...(Types) <= 6, "Please expand this sequence");
 }
 
+template <typename ... Types>
+void TypeBinding::ApplyFunctionDT(const std::function<void(float, Types&...)>& function, size_t pos, float deltaTime)
+{
+	assert(sizeof...(Types) == m_TypesAmount);
+	assert(Assert<Types...>());
+
+	if constexpr (sizeof...(Types) == 2)
+	{
+		function( deltaTime,
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 3)
+	{
+		function( deltaTime,
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 4)
+	{
+		function( deltaTime,
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get(),
+			*Get<std::tuple_element_t<3, std::tuple<Types...>>>(3, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 5)
+	{
+		function( deltaTime,
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get(),
+			*Get<std::tuple_element_t<3, std::tuple<Types...>>>(3, pos).get(),
+			*Get<std::tuple_element_t<4, std::tuple<Types...>>>(4, pos).get());
+	}
+	else if constexpr (sizeof...(Types) == 6)
+	{
+		function( deltaTime,
+			*Get<std::tuple_element_t<0, std::tuple<Types...>>>(0, pos).get(),
+			*Get<std::tuple_element_t<1, std::tuple<Types...>>>(1, pos).get(),
+			*Get<std::tuple_element_t<2, std::tuple<Types...>>>(2, pos).get(),
+			*Get<std::tuple_element_t<3, std::tuple<Types...>>>(3, pos).get(),
+			*Get<std::tuple_element_t<4, std::tuple<Types...>>>(4, pos).get(),
+			*Get<std::tuple_element_t<5, std::tuple<Types...>>>(5, pos).get());
+	}
+	static_assert(sizeof...(Types) <= 6, "Please expand this sequence");
+}

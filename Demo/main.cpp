@@ -8,16 +8,19 @@
 
 #include <vld.h>
 
+#include <SDL.h>
+
+#define REGISTRY_DESERIALIZE
+#ifndef REGISTRY_DESERIALIZE
 #include "Components/Render.h"
 #include "Components/RenderModifiers.h"
 #include "Components/Transform.h"
 #include "Components/TransformModifiers.h"
-
-#include <SDL.h>
+#include "Components/TestClasses.h"
+#endif
 
 void ProcessInput();
 
-#define REGISTRY_DESERIALIZE
 
 int main(int, char* [])
 {
@@ -59,6 +62,7 @@ int main(int, char* [])
 	registry.AddSystem("RenderModifier");
 	registry.AddSystem("MoveScaleRotate");
 	registry.AddSystem("PositionModulo");
+	registry.AddSystem("BaseClassNamePrinter");
 
 	std::vector<GameObject> objects;
 	constexpr size_t entitiesAmount{ 16'384 };
@@ -76,6 +80,10 @@ int main(int, char* [])
 		transform->Randomize();
 		render->Randomize();
 	}
+
+	objects[0].AddComponent<BaseClass>();
+	objects[1].AddComponent<DerivedClass>();
+	objects[2].AddComponent<UpdateAbleClass>();
 
 #endif
 

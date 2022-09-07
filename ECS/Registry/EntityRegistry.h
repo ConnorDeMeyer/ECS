@@ -46,28 +46,42 @@ public:
 	 */
 
 	/** Add Dynamic View System to the Registry*/
-	template <typename Type>
-	void AddSystem(const SystemParameters& parameters, const std::function<void(Type&)>& function);
+	template <typename Component>
+	SystemBase* AddSystem(const SystemParameters& parameters, const std::function<void(Component&)>& function, bool AddSubSystems = true);
 
 	/** Add Dynamic Binding System to the Registry*/
-	template <typename... Types>
-	void AddSystem(const SystemParameters& parameters, const std::function<void(Types&...)>& function) requires (sizeof...(Types) >= 2);
+	template <typename... Component>
+	SystemBase* AddSystem(const SystemParameters& parameters, const std::function<void(Component&...)>& function, bool AddSubSystems = true) requires (sizeof...(Component) >= 2);
+
+	template <typename Component>
+	SystemBase* AddSystem(const SystemParameters& parameters, const std::function<void(float, Component&)>& functionDT, bool AddSubSystems = true);
+
+	template <typename... Components>
+	SystemBase* AddSystem(const SystemParameters& parameters, const std::function<void(float, Components&...)>& functionDT, bool AddSubSystems = true) requires (sizeof...(Components) >= 2);
 
 	/** Add the specific System to the Registry given as the template parameter*/
 	template <typename System>
-	void AddSystem(const SystemParameters& parameters) requires std::is_base_of_v<SystemBase, System>;
+	SystemBase* AddSystem(const SystemParameters& parameters, bool AddSubSystems = true) requires std::is_base_of_v<SystemBase, System>;
+
+	template <typename Component>
+	void AddDefaultSystems();
+
+	void AddDefaultSystems(uint32_t typeId);
 
 	/**
 	 * Add a System to the registry given the name of the system
 	 * The System has to be registered using the RegisterSystem<System>() or RegisterDynamicSystem(function)
 	 * Look at TypeInformation/TypeInfoGenerator.h for more info
 	 */
-	void AddSystem(const std::string& name);
+	SystemBase* AddSystem(const std::string& name);
 
-	/** Prints the names of the added Systems to the stream*/
+	/** Prints the names of the added Systems to the stream without default and subsystems*/
 	void PrintSystems(std::ostream& stream) const;
 	/** Prints the names of the added Systems to the console*/
 	void PrintSystems() const;
+
+	void PrintAllSystems(std::ostream& stream) const;
+	void PrintAllSystems() const;
 
 	/**
 	 * Prints information about each registered system to the console. Information includes:
@@ -107,16 +121,16 @@ public:
 	 */
 	TypeViewBase* GetOrCreateView(uint32_t typeId);
 
-	/** Adds the Type View to the Registry given the Component class.*/
+	/** Adds the Component View to the Registry given the Component class.*/
 	template <typename Component>
 	TypeView<Component>& AddView();
 
-	/** Gets the Type View corresponding with the given Component type*/
+	/** Gets the Component View corresponding with the given Component type*/
 	template <typename Component>
 	TypeView<Component>& GetTypeView() const;
 
 	/**
-	 * Gets the Type View corresponding with the given Component type.
+	 * Gets the Component View corresponding with the given Component type.
 	 * If the View is not in the Registry it will create it.
 	 */
 	template <typename Component>
@@ -143,29 +157,29 @@ public:
 	 * BINDINGS
 	 */
 
-	/** Add a Type Binding to the Registry. If one already exists using the same Components but in a different order this method will assert*/
+	/** Add a Component Binding to the Registry. If one already exists using the same Components but in a different order this method will assert*/
 	template <typename... Components>
 	TypeBinding* AddBinding();
 
-	/** Add a Type Binding using TypeIds instead of templates*/
+	/** Add a Component Binding using TypeIds instead of templates*/
 	TypeBinding* AddBinding(const uint32_t* typeIds, size_t size);
 
-	/** Gets the Type Binding corresponding the Given Components*/
+	/** Gets the Component Binding corresponding the Given Components*/
 	template <typename... Components>
 	[[nodiscard]] TypeBinding* GetBinding();
 
-	/** Returns the Type Binding corresponding to the given TypeIds*/
+	/** Returns the Component Binding corresponding to the given TypeIds*/
 	[[nodiscard]] TypeBinding* GetBinding(const uint32_t* types, const size_t size) const;
 
 	/**
-	 * Returns the Type Binding corresponding to the given TypeIds.
-	 * If the Type Binding does not exist it will create it.
+	 * Returns the Component Binding corresponding to the given TypeIds.
+	 * If the Component Binding does not exist it will create it.
 	 */
 	[[nodiscard]] TypeBinding* GetOrCreateBinding(const uint32_t* types, const size_t size);
 
 	/**
-	 * Returns the Type Binding corresponding to the given Components.
-	 * If the Type Binding does not exist it will create it.
+	 * Returns the Component Binding corresponding to the given Components.
+	 * If the Component Binding does not exist it will create it.
 	 */
 	template <typename... Components>
 	[[nodiscard]] TypeBinding* GetOrCreateBinding();
@@ -223,11 +237,17 @@ private:
 	template <typename... Components>
 	void AddDynamicBindingSubSystems(const SystemParameters& parameters, const std::function<void(Components&...)>& function);
 
-	template <typename System>
-	void AddViewSystem(const SystemParameters& parameters);
+	template <typename Component>
+	void AddDynamicViewSubSystemsDT(const SystemParameters& parameters, const std::function<void(float, Component&)>& functionDT);
+
+	template <typename... Components>
+	void AddDynamicBindingSubSystemsDT(const SystemParameters& parameters, const std::function<void(float, Components&...)>& functionDT);
 
 	template <typename System>
-	void AddBindingSystem(const SystemParameters& parameters);
+	SystemBase* AddViewSystem(const SystemParameters& parameters, bool AddSubSystems = true);
+
+	template <typename System>
+	SystemBase* AddBindingSystem(const SystemParameters& parameters, bool AddSubSystems = true);
 
 	template <typename System>
 	void AddViewSubSystem(const SystemParameters& parameters);
@@ -274,7 +294,7 @@ private:
 };
 
 template <typename Component>
-void EntityRegistry::AddSystem(const SystemParameters& parameters, const std::function<void(Component&)>& function)
+SystemBase* EntityRegistry::AddSystem(const SystemParameters& parameters, const std::function<void(Component&)>& function, bool AddSubSystems)
 {
 	// Make sure the name is not in there already
 	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [parameters](const std::unique_ptr<SystemBase>& sys) {return sys->GetSystemParameters().name == parameters.name; }));
@@ -287,11 +307,14 @@ void EntityRegistry::AddSystem(const SystemParameters& parameters, const std::fu
 
 	m_Systems.emplace(system);
 
-	AddDynamicViewSubSystems<Component>(parameters, function);
+	if (AddSubSystems)
+		AddDynamicViewSubSystems<Component>(parameters, function);
+
+	return system;
 }
 
 template <typename... Components>
-void EntityRegistry::AddSystem(const SystemParameters& parameters, const std::function<void(Components&...)>& function) requires (sizeof...(Components) >= 2)
+SystemBase* EntityRegistry::AddSystem(const SystemParameters& parameters, const std::function<void(Components&...)>& function, bool AddSubSystems) requires (sizeof...(Components) >= 2)
 {
 	// Make sure the name is not in there already
 	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [parameters](const std::unique_ptr<SystemBase>& sys) {return sys->GetSystemParameters().name == parameters.name; }));
@@ -304,22 +327,74 @@ void EntityRegistry::AddSystem(const SystemParameters& parameters, const std::fu
 
 	m_Systems.emplace(system);
 
-	AddDynamicBindingSubSystems(parameters, function);
+	if (AddSubSystems)
+		AddDynamicBindingSubSystems(parameters, function);
+
+	return system;
+}
+
+template <typename Component>
+SystemBase* EntityRegistry::AddSystem(const SystemParameters& parameters, const std::function<void(float, Component&)>& functionDT,
+	bool AddSubSystems)
+{
+	// Make sure the name is not in there already
+	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [parameters](const std::unique_ptr<SystemBase>& sys) {return sys->GetSystemParameters().name == parameters.name; }));
+
+	auto view = &GetOrCreateView<Component>();
+	auto system = new ViewSystemDynamicDT<Component>{ parameters, functionDT };
+
+	system->SetTypeView(view);
+	system->Initialize();
+
+	m_Systems.emplace(system);
+
+	if (AddSubSystems)
+		AddDynamicViewSubSystemsDT<Component>(parameters, functionDT);
+
+	return system;
+}
+
+template <typename ... Components>
+SystemBase* EntityRegistry::AddSystem(const SystemParameters& parameters,
+	const std::function<void(float, Components&...)>& functionDT, bool AddSubSystems) requires (sizeof...(Components) >= 2)
+{
+	// Make sure the name is not in there already
+	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [parameters](const std::unique_ptr<SystemBase>& sys) {return sys->GetSystemParameters().name == parameters.name; }));
+
+	TypeBinding* binding{ GetOrCreateBinding<Components...>() };
+	auto system = new BindingSystemDynamicDT<Components...>{ parameters, functionDT };
+
+	system->SetTypeBinding(binding);
+	system->Initialize();
+
+	m_Systems.emplace(system);
+
+	if (AddSubSystems)
+		AddDynamicBindingSubSystems(parameters, functionDT);
+
+	return system;
 }
 
 template <typename System>	
-void EntityRegistry::AddSystem(const SystemParameters& parameters) requires std::is_base_of_v<SystemBase, System>
+SystemBase* EntityRegistry::AddSystem(const SystemParameters& parameters, bool AddSubSystems) requires std::is_base_of_v<SystemBase, System>
 {
 	assert(m_Systems.end() == std::find_if(m_Systems.begin(), m_Systems.end(), [parameters](const std::unique_ptr<SystemBase>& sys) {return sys->GetSystemParameters().name == parameters.name; }));
 
 	if constexpr (isBindingSystem<System>)
 	{
-		AddBindingSystem<System>(parameters);
+		return AddBindingSystem<System>(parameters, AddSubSystems);
 	}
 	else
 	{
-		AddViewSystem<System>(parameters);
+		return AddViewSystem<System>(parameters, AddSubSystems);
 	}
+}
+
+template <typename Component>
+void EntityRegistry::AddDefaultSystems()
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	AddDefaultSystems(typeId);
 }
 
 template <typename Component>
@@ -328,6 +403,9 @@ TypeView<Component>& EntityRegistry::AddView()
 	auto view = new TypeView<Component>(this);
 	constexpr uint32_t typeId{ reflection::type_id<Component>() };
 	m_TypeViews.emplace(typeId, view);
+
+	// Add default Systems
+	AddDefaultSystems(typeId);
 
 	return *view;
 }
@@ -339,7 +417,7 @@ TypeView<Component>& EntityRegistry::GetTypeView() const
 	if (it != m_TypeViews.end())
 		return *reinterpret_cast<TypeView<Component>*>(it->second.get());
 
-	throw std::runtime_error("Type View not in registry");
+	throw std::runtime_error("Component View not in registry");
 }
 
 template <typename Component>
@@ -461,6 +539,7 @@ void EntityRegistry::AddDynamicViewSubSystems(const SystemParameters& parameters
 		auto system = new ViewSystemDynamic<Component>{ newParams, function };
 
 		system->SetTypeView(view);
+		system->SetFlag(SystemFlags::SubSystem, true);
 		system->Initialize();
 
 		m_Systems.emplace(system);
@@ -498,6 +577,68 @@ void EntityRegistry::AddDynamicBindingSubSystems(const SystemParameters& paramet
 		auto subSystem = new BindingSystemDynamic<Components...>{ newParams, function };
 
 		subSystem->SetTypeBinding(binding);
+		subSystem->SetFlag(SystemFlags::SubSystem, true);
+		subSystem->Initialize();
+
+		m_Systems.emplace(subSystem);
+	}
+}
+
+template <typename Component>
+void EntityRegistry::AddDynamicViewSubSystemsDT(const SystemParameters& parameters,
+	const std::function<void(float, Component&)>& functionDT)
+{
+	constexpr uint32_t typeId = reflection::type_id<Component>();
+	const std::vector<uint32_t> subClasses{ TypeInformation::GetSubClasses(typeId) };
+	for (auto subclassId : subClasses)
+	{
+		TypeView<Component>* view = reinterpret_cast<TypeView<Component>*>(GetOrCreateView(subclassId));
+
+		SystemParameters newParams = parameters;
+		newParams.name = parameters.name + "_" + std::string(TypeInformation::GetTypeName(subclassId));
+
+		auto system = new ViewSystemDynamicDT<Component>{ newParams, functionDT };
+
+		system->SetTypeView(view);
+		system->SetFlag(SystemFlags::SubSystem, true);
+		system->Initialize();
+
+		m_Systems.emplace(system);
+	}
+}
+
+template <typename ... Components>
+void EntityRegistry::AddDynamicBindingSubSystemsDT(const SystemParameters& parameters,
+	const std::function<void(float, Components&...)>& functionDT)
+{
+	// Get The Combinations that can be made using the given components and their child classes
+	constexpr size_t typesAmount{ sizeof...(Components) };
+	constexpr auto typeIds{ reflection::Type_ids<Components...>() };
+	const std::vector<uint32_t> SubClassesCombinations{ TypeInformation::GetSubTypeCombinations(typeIds.data(), typeIds.size()) };
+
+	for (size_t i{}; i < SubClassesCombinations.size(); i += typesAmount)
+	{
+		std::array<uint32_t, typesAmount> subTypeIds;
+
+		std::stringstream sBuffer;
+		sBuffer << parameters.name;
+		for (size_t j{}; j < typesAmount; ++j)
+		{
+			subTypeIds[j] = SubClassesCombinations[i];
+
+			if (j != typesAmount - 1)
+				sBuffer << '_';
+			sBuffer << TypeInformation::GetTypeName(SubClassesCombinations[i]);
+		}
+		SystemParameters newParams = parameters;
+		newParams.name = sBuffer.str();
+
+		auto binding = GetOrCreateBinding(subTypeIds.data(), subTypeIds.size());
+
+		auto subSystem = new BindingSystemDynamicDT<Components...>{ newParams, functionDT };
+
+		subSystem->SetTypeBinding(binding);
+		subSystem->SetFlag(SystemFlags::SubSystem, true);
 		subSystem->Initialize();
 
 		m_Systems.emplace(subSystem);
@@ -505,7 +646,7 @@ void EntityRegistry::AddDynamicBindingSubSystems(const SystemParameters& paramet
 }
 
 template <typename System>
-void EntityRegistry::AddViewSystem(const SystemParameters& parameters)
+SystemBase* EntityRegistry::AddViewSystem(const SystemParameters& parameters, bool AddSubSystems)
 {
 	using Component = System::ComponentType;
 
@@ -517,11 +658,14 @@ void EntityRegistry::AddViewSystem(const SystemParameters& parameters)
 
 	m_Systems.emplace(system);
 
-	AddViewSubSystem<System>(parameters);
+	if (AddSubSystems)
+		AddViewSubSystem<System>(parameters);
+
+	return system;
 }
 
 template <typename System>
-void EntityRegistry::AddBindingSystem(const SystemParameters& parameters)
+SystemBase* EntityRegistry::AddBindingSystem(const SystemParameters& parameters, bool AddSubSystems)
 {
 	constexpr auto types = System::GetTypes();
 	TypeBinding* binding{ GetOrCreateBinding(types.data(), types.size()) };
@@ -532,7 +676,10 @@ void EntityRegistry::AddBindingSystem(const SystemParameters& parameters)
 
 	m_Systems.emplace(system);
 
-	AddBindingSubSystem<System>(parameters);
+	if (AddSubSystems)
+		AddBindingSubSystem<System>(parameters);
+
+	return system;
 }
 
 template <typename System>
@@ -552,6 +699,7 @@ void EntityRegistry::AddViewSubSystem(const SystemParameters& parameters)
 		auto system = new System( newParams );
 
 		system->SetTypeView(subView);
+		system->SetFlag(SystemFlags::SubSystem, true);
 		system->Initialize();
 
 		m_Systems.emplace(system);
@@ -588,6 +736,7 @@ void EntityRegistry::AddBindingSubSystem(const SystemParameters& parameters)
 		auto subSystem = new System{ newParams };
 
 		subSystem->SetTypeBinding(binding);
+		subSystem->SetFlag(SystemFlags::SubSystem, true);
 		subSystem->Initialize();
 
 		m_Systems.emplace(subSystem);

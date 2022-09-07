@@ -164,6 +164,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocators\ObjectPoolAllocator.h" />
+    <ClInclude Include="DataAccess\Iterators.h" />
+    <ClInclude Include="DataAccess\References.h" />
     <ClInclude Include="Entity\GameObject.h" />
     <ClInclude Include="Serialize\Serializer.h" />
     <ClInclude Include="Sorting\SmoothSort.h" />
@@ -175,6 +177,7 @@
     <ClInclude Include="Sorting\SorterThreadPool.h" />
     <ClInclude Include="System\System.h" />
     <ClInclude Include="System\SystemBase.h" />
+    <ClInclude Include="TypeInformation\Concepts.h" />
     <ClInclude Include="TypeInformation\ECSTypeInformation.h" />
     <ClInclude Include="TypeInformation\TypeInfoGenerator.h" />
     <ClInclude Include="TypeInformation\reflection.h" />

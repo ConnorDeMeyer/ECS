@@ -1,5 +1,7 @@
 ﻿#include "DynamicSystems.h"
-
+#include "../Components/RenderModifiers.h"
+#include "../Components/TransformModifiers.h"
+#include "../Components/TestClasses.h"
 
 
 void RenderTransformUpdateSystem::Execute()
@@ -50,3 +52,13 @@ RegisterDynamicSystem<Transform> posModular(
 		transform.transform[2][1] = std::fmod(transform.transform[2][1] + 720.f, 720.f);
 		transform.transform[1][1] = transform.transform[0][0] = std::abs(std::fmod(transform.transform[0][0] - 0.25f, 200.f) + 0.25f);
 	});
+
+RegisterDynamicSystem<BaseClass> baseClassSys(
+	SystemParameters{
+		"BaseClassNamePrinter", int32_t(ExecutionTime::Update), 1.f
+	},
+	[](BaseClass& base)
+	{
+		std::cout << base.name << '\n';
+	}
+);

@@ -17,13 +17,18 @@ EntityRegistry::~EntityRegistry()
 	m_SortingThreadPool.QuitAndWait();
 }
 
-void EntityRegistry::AddSystem(const std::string& name)
+void EntityRegistry::AddDefaultSystems(uint32_t typeId)
+{
+	ECSTypeInformation::AddDefaultSystems(typeId, this);
+}
+
+SystemBase* EntityRegistry::AddSystem(const std::string& name)
 {
 	auto& systemAdder = ECSTypeInformation::GetSystemAdders();
 	auto it = systemAdder.find(name);
 	if (it != systemAdder.end())
 	{
-		it->second(this);
+		return it->second(this);
 	}
 	else
 	{
@@ -35,11 +40,25 @@ void EntityRegistry::AddSystem(const std::string& name)
 		}
 		assert(false); // System cannot be found
 	}
+	return nullptr;
 }
 
 void EntityRegistry::PrintSystems() const
 {
 	PrintSystems(std::cout);
+}
+
+void EntityRegistry::PrintAllSystems(std::ostream& stream) const
+{
+	for (auto& system : m_Systems)
+	{
+		stream << system->GetSystemParameters().name << '\n';
+	}
+}
+
+void EntityRegistry::PrintAllSystems() const
+{
+	PrintAllSystems(std::cout);
 }
 
 void EntityRegistry::PrintSystemInformation() const
@@ -76,7 +95,8 @@ void EntityRegistry::PrintSystems(std::ostream& stream) const
 {
 	for (auto& system : m_Systems)
 	{
-		stream << system->GetSystemParameters().name << '\n';
+		if (!system->IsSubSystem() && !system->IsDefaulySystem())
+			stream << system->GetSystemParameters().name << '\n';
 	}
 }
 
@@ -256,15 +276,20 @@ void EntityRegistry::Update(float deltaTime)
 	// Update Type views
 	for (auto& typeView : m_TypeViews)
 	{
-		typeView.second->Update();
+		typeView.second->Update(deltaTime);
 	}
 		
 }
 
 void EntityRegistry::Serialize(std::ostream& stream) const
 {
-
-	WriteStream(stream, m_Systems.size());
+	{ // Get amount of systems that are not subsystems or default systems
+		size_t SystemAmount{  };
+		for (auto& system : m_Systems)
+			if (!system->IsDefaulySystem() && !system->IsSubSystem())
+				++SystemAmount;
+		WriteStream(stream, SystemAmount);
+	}
 	PrintSystems(stream);
 	
 	WriteStream(stream, m_Entities.size());

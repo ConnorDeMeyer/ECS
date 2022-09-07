@@ -83,5 +83,14 @@
     <ClInclude Include="Serialize\Serializer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TypeInformation\Concepts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataAccess\References.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataAccess\Iterators.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

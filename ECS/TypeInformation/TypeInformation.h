@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <functional>
 
+#include "Concepts.h"
 #include "reflection.h"
 
 template <typename To, typename From>
@@ -87,6 +88,8 @@ void TypeInformation::AddClass()
 	if (instance.m_TypeInformation.contains(reflection::type_id<T>()))
 		return;
 
+	constexpr uint32_t typeId{ reflection::type_id<T>() };
+
 	T TypeInstance{};
 
 	Info info{};
@@ -97,16 +100,16 @@ void TypeInformation::AddClass()
 	if constexpr (std::is_polymorphic_v<T>)
 	{
 		info.m_pVTable = static_cast<void*>(&TypeInstance);
-		instance.m_VptrClassMap.emplace(info.m_pVTable, reflection::type_id<T>());
+		instance.m_VptrClassMap.emplace(info.m_pVTable, typeId);
 	}
 
-	instance.m_TypeInformation.insert({ reflection::type_id<T>(), std::move(info) });
+	instance.m_TypeInformation.insert({ typeId, std::move(info) });
 }
 
 template <typename Base, typename Child>
 void TypeInformation::AddBaseChildConnection()
 {
-	static_assert(std::is_polymorphic_v<Base> && std::is_polymorphic_v<Child> && std::is_base_of_v<Base, Child>);
+	static_assert(std::is_base_of_v<Base, Child>);
 
 	auto& instance = GetInstance();
 

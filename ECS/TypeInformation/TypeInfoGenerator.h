@@ -18,7 +18,7 @@ private:
 		ClassInformationGenerator()
 		{
 			TypeInformation::AddClass<T>();
-			ECSTypeInformation::AddTypeViewClass<T>();
+			ECSTypeInformation::AddClass<T>();
 			//if constexpr (MemberFielsInfo<T>)	T::TypeInfo_RegisterFields();
 		}
 	};
@@ -83,6 +83,17 @@ public:
 			Generator.emplace(parameters.name, SystemInformationGenerator{ parameters, function });
 		}
 	}
+
+	RegisterDynamicSystem(const SystemParameters& parameters, const std::function<void(float, Types&...)>& function)
+	{
+		std::cout << "Registering " << parameters.name << '\n';
+		auto it = Generator.find(parameters.name);
+		if (it == Generator.end())
+		{
+			Generator.emplace(parameters.name, SystemInformationGenerator{ parameters, function });
+		}
+	}
+
 private:
 	class SystemInformationGenerator final
 	{

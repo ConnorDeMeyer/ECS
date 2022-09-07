@@ -119,5 +119,8 @@
     <ClInclude Include="3rdParty\stb_image\stb_voxel_render.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Components\TestClasses.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

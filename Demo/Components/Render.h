@@ -5,6 +5,8 @@
 
 struct Render
 {
+	constexpr static float UpdateInterval{ 1.f };
+
 	glm::mat3 Transform{ 100,0,0,0,100,0,200,200,1 };
 	glm::vec4 Color{ 1,1,1,1 };
 	glm::vec4 Uvs{ 0,1,0,1 }; // {x_start, x_end, y_start, y_end}
@@ -25,7 +27,7 @@ struct Render
 
 		Pivot.x = distribution2(generator);
 		Pivot.y = distribution2(generator);
-
+		
 		Depth = distribution(generator);
 	}
 };

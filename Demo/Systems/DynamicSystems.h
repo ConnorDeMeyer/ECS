@@ -1,8 +1,6 @@
 #pragma once
 #include "../Components/Render.h"
 #include "../Components/Transform.h"
-#include "../Components/RenderModifiers.h"
-#include "../Components/TransformModifiers.h"
 
 class RenderTransformUpdateSystem final : public BindingSystem<Render, Transform>
 {
