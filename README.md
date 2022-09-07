@@ -42,12 +42,12 @@ The `TypeView<Component>` class is the container for all the Components in a reg
 
 `TypeBinding<Components...>` are similar to Type Views as they allow quickly accessing multiple Components that are all connected to the same Entity. Type bindings can be initialized with any amount of Components as long as the number is bigger than 1.
 example:
-```
+```cpp
 auto typeBinding = TypeBinding<Transform, Physics, Render>{...}
 ```
 will create a TypeBinding that contains references to the Components `Transform`, `Physics`, `Render`. Whenever an entity exists with these components it will be added to the TypeBinding. You may then access the references and call functions on them and/or transfer data between them.
 It also contains a method to call function on them. For example:
-```
+```cpp
 ApplyFunctionOnAll<Transform, Physics, Render>([](Transform& transform, Physics& physics, Render& render) {...} );
 ```
 Will call the lambda function on the mentioned Components of an Entity that contains all of them.
@@ -105,7 +105,7 @@ You can also specify the Update interval by creating a static floating point var
  - `LateRenderInterval`
 
 example:
-```
+```cpp
 struct Transform
 {
     static constexpr float UpdateInterval{ 0.16f }
