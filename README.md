@@ -1,6 +1,6 @@
 # ECS
 
-An Entity Component System (ECS) made by Connor De Meyer. An ECS is a software architecture used primarly for video games where an entities are comprised by components of data. This data is stored as closely to each other as possible for easy and fast reading and modification. This architecture heavily benefits from CPU memory caching which improves performance.
+An Entity Component System (ECS) made by Connor De Meyer. An ECS is a software architecture used primarily for video games where an entities are comprised by components of data. This data is stored as closely to each other as possible for easy and fast reading and modification. This architecture heavily benefits from CPU memory caching which improves performance.
 
 ## Entity
 
@@ -8,7 +8,7 @@ An Entity consist of 2 elements:
  - `entityId`: either a 4 or 8 byte unsigned integer depending on the system architecture
  - `EntityRegistry` reference: A Reference to the Entity Registry it is contained in
 
-The entityId is the most important part of the Entity class. When interacting with the Entity Registry it is only neccesary to have the entityId to add/remove/get Components.
+The entityId is the most important part of the Entity class. When interacting with the Entity Registry it is only necessary to have the entityId to add/remove/get Components.
 
 ### Game Object
 
@@ -28,7 +28,7 @@ Member methods can be added to personalize functionality for various stages of t
 
 ### References
 
-Because Data is stored in contigious array, they will sometimes have to move whenever the underlying array has to resize. Because of that you references/pointers to components are passed may be passed around by `Reference<Component>`. It contains a pointer to the class `ReferencePointer<Component>` that is static in memory and contains the pointer to the Component. Every time the underlying array gets resized, all the `ReferencePointer<Component>` get their pointers updated. These are similar to `std::shared_ptr` as they will always point to either a valid component or a nullptr in case the Component has been removed. They will also only be deleted from memory when no reference exists that points to it.
+Because Data is stored in contiguous array, they will sometimes have to move whenever the underlying array has to resize. Because of that you references/pointers to components are passed may be passed around by `Reference<Component>`. It contains a pointer to the class `ReferencePointer<Component>` that is static in memory and contains the pointer to the Component. Every time the underlying array gets resized, all the `ReferencePointer<Component>` get their pointers updated. These are similar to `std::shared_ptr` as they will always point to either a valid component or a nullptr in case the Component has been removed. They will also only be deleted from memory when no reference exists that points to it.
 
 ## Entity Registry
 
@@ -36,7 +36,7 @@ The `EntityRegistry` is the class that contains all the Entities, TypeViews, and
 
 ### Type View
 
-The `TypeView<Component>` class is the container for all the Components in a registry. It is respnsible for managing the `References` and resizing data whenever it needs to.
+The `TypeView<Component>` class is the container for all the Components in a registry. It is responsible for managing the `References` and resizing data whenever it needs to.
 
 ### Type Binding
 
@@ -57,11 +57,11 @@ Will call the lambda function on the mentioned Components of an Entity that cont
 ## System
 
 A system is a process that modifies or acts on one or multiple components.
-All Systems inherit from `SystemBase`, an abstract class that contains the following virtual methods that can be overriden in a custom System:
- - `Execute()`: Should contain the funcionality of the system, modifying or using the components.
+All Systems inherit from `SystemBase`, an abstract class that contains the following virtual methods that can be overridden in a custom System:
+ - `Execute()`: Should contain the functionality of the system, modifying or using the components.
  - `Initialize()`: Is called after construction when the TypeView or TypeBinding is set
 
-When constructing a System it requires `SystemParameters` which constains the following information:
+When constructing a System it requires `SystemParameters` which contains the following information:
  - Name of the system
  - Execution time: an integer to specify when it should execute compared to other systems. Systems with lower Execution time will execute before Systems with higher Execution time.
  - Update interval: How long it takes between each Execute call. if 0 it will execute every frame.
@@ -97,7 +97,7 @@ These systems are created whenever a specific method exists in the Component. Wh
  - `Render()`
  - `LateRender()`
 
-You can also specify the Update interval by creating a static floatingPoint variable inside the class given the corresponding name:
+You can also specify the Update interval by creating a static floating point variable inside the class given the corresponding name:
  - `PreUpdateInterval`
  - `UpdateInterval`
  - `LateUpdateInterval`
@@ -120,7 +120,7 @@ You can query the sorting state of a TypeView using the function `GetDataFlag()`
 
 ## Serializing
 
-A Registry is able to completely convert itself into a stream of bytes and then deconvert that stream back into all the original components.
+A Registry is able to completely convert itself into a stream of bytes and then convert that stream back into all the original components.
 
 If you want to define custom Serialize and Deserialize functionality to Components they should contain methods with the following signature:
  - `Serialize(std::ostream&)` for converting the Component into a stream of data
@@ -129,13 +129,13 @@ If you want to define custom Serialize and Deserialize functionality to Componen
 When Deserializing, the amount of data it takes from the stream should be the same as the data it puts into the stream when Serializing.
 Whenever this doesn't apply an exception will be thrown.
 
-**Inputed streams should be used in binary mode**
+**Streams should be used in binary mode**
 
 ## Reflection
 
 inside the `TypeInformation\reflection.h` contains various functions that will convert Types to `std::string_view` and `uint32_t` at compile time. which can be used with `std::unordered_maps` to create simple type mapping and is used at various times in this framework.
 
-Because Serialization requires some form of previous setup before the Deserialization happens, it is neccesary to register the existance of Components and Systems using static variables. The `TypeInformation\TypeInfoGenerator.h` header file contains various helper objects that will generate the neccesary data without much trouble. The following can be used:
+Because Serialization requires some form of previous setup before the Deserialization happens, it is necessary to register the existence of Components and Systems using static variables. The `TypeInformation\TypeInfoGenerator.h` header file contains various helper objects that will generate the necessary data without much trouble. The following can be used:
  - `RegisterClass<Component> any_name()`: Will create some type information and make it possible for views to be added at the Deserialization stage.
  - `RegisterChildClass<Base, Inhereted> any_name()`: Will mark the types as child and parent and will then generate Sub Systems whenever the base class is used in a System. You may also use the `Cast()` function which replaces the `dynamic_cast()` that is disabled.
  - `RegisterSystem<System> any_name(const SystemParameters&)`: Will register the System using the System Parameters. It will then be able to add the System to a registry using the name in the System Parameters.
