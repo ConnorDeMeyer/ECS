@@ -118,8 +118,26 @@ struct Transform
 Whenever a Components have to exist in a sorted state you can specify a function by the signature of `bool SortCompare(const Component&, const Component&)`. If this function exists they Components will try to stay in a sorted state as much as possible.
 You can query the sorting state of a TypeView using the function `GetDataFlag()` and the data flag id using `GetDataFlagId()`. The data flag Id changes whenever the data becomes dirty again. This way you can check in between the data being dirty if it changed again.
 
+## Serializing
+
+A Registry is able to completely convert itself into a stream of bytes and then deconvert that stream back into all the original components.
+
+If you want to define custom Serialize and Deserialize functionality to Components they should contain methods with the following signature:
+ - `Serialize(std::ostream&)` for converting the Component into a stream of data
+ - `Deserialize(std::istream&)` for converting a stream of data into a component
+
+When Deserializing, the amount of data it takes from the stream should be the same as the data it puts into the stream when Serializing.
+Whenever this doesn't apply an exception will be thrown.
+
+**Inputed streams should be used in binary mode**
+
 ## Reflection
 
+inside the `TypeInformation\reflection.h` contains various functions that will convert Types to `std::string_view` and `uint32_t` at compile time. which can be used with `std::unordered_maps` to create simple type mapping and is used at various times in this framework.
 
-
-## Serializing
+Because Serialization requires some form of previous setup before the Deserialization happens, it is neccesary to register the existance of Components and Systems using static variables. The `TypeInformation\TypeInfoGenerator.h` header file contains various helper objects that will generate the neccesary data without much trouble. The following can be used:
+ - `RegisterClass<Component> any_name()`: Will create some type information and make it possible for views to be added at the Deserialization stage.
+ - `RegisterChildClass<Base, Inhereted> any_name()`: Will mark the types as child and parent and will then generate Sub Systems whenever the base class is used in a System. You may also use the `Cast()` function which replaces the `dynamic_cast()` that is disabled.
+ - `RegisterSystem<System> any_name(const SystemParameters&)`: Will register the System using the System Parameters. It will then be able to add the System to a registry using the name in the System Parameters.
+ - `RegisterDynamicSystem<Components...> any_name(const SystemParameters&, const std::function<Components...>&)` Same as `RegisterSystem` but as a dyanmic system.
+ - `RegisterDynamicSystem<Components...> any_name(const SystemParameters&, const std::function<float, Components...>&)` Same as previous but with deltaTime
