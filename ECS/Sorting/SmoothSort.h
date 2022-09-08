@@ -6,10 +6,8 @@
 #include <xutility>
 #include "../Entity/Entity.h"
 #include "../Registry/TypeViewBase.h"
+#include "../TypeInformation/Concepts.h"
 
-/** If a function exists called SortCompare that takes (const T&, const T&) as parameters, it will automatically set it as the sorting algorithm*/
-template <typename T>
-concept Sortable = requires(T val0, T val1) { SortCompare(val0, val1); };
 
 //https://en.wikibooks.org/wiki/Algorithm_Implementation/Sorting/Smoothsort
 
