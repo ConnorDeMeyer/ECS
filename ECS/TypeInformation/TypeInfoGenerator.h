@@ -70,11 +70,11 @@ private:
 	inline static std::unordered_map<std::string, SystemInformationGenerator> Generator{};
 };
 
-template <typename... Types>
+template <typename... Components>
 class RegisterDynamicSystem final
 {
 public:
-	RegisterDynamicSystem(const SystemParameters& parameters, const std::function<void(Types&...)>& function)
+	RegisterDynamicSystem(const SystemParameters& parameters, const std::function<void(Components&...)>& function)
 	{
 		std::cout << "Registering " << parameters.name << '\n';
 		auto it = Generator.find(parameters.name);
@@ -84,7 +84,7 @@ public:
 		}
 	}
 
-	RegisterDynamicSystem(const SystemParameters& parameters, const std::function<void(float, Types&...)>& function)
+	RegisterDynamicSystem(const SystemParameters& parameters, const std::function<void(float, Components&...)>& function)
 	{
 		std::cout << "Registering " << parameters.name << '\n';
 		auto it = Generator.find(parameters.name);
@@ -98,7 +98,7 @@ private:
 	class SystemInformationGenerator final
 	{
 	public:
-		SystemInformationGenerator(const SystemParameters& parameters, const std::function<void(Types&...)>& function)
+		SystemInformationGenerator(const SystemParameters& parameters, const std::function<void(Components&...)>& function)
 		{
 			ECSTypeInformation::AddSystem(parameters, function);
 		}
