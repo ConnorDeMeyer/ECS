@@ -92,15 +92,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);$(SolutionDir)ECS\lib\$(Platform)\$(Configuration);$(SolutionDir)GUI\lib\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;GUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo Copying .dll files
@@ -120,7 +120,7 @@ EXIT /B 0</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -129,8 +129,8 @@ EXIT /B 0</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);$(SolutionDir)ECS\lib\$(Platform)\$(Configuration);$(SolutionDir)GUI\lib\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;GUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo Copying .dll files
@@ -148,15 +148,15 @@ EXIT /B 0</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);$(SolutionDir)ECS\lib\$(Platform)\$(Configuration);$(SolutionDir)GUI\lib\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;GUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo Copying .dll files
@@ -176,7 +176,7 @@ EXIT /B 0</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(SolutionDir);$(ProjectDir)3rdParty\SDL2_image\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -185,8 +185,8 @@ EXIT /B 0</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(SolutionDir)lib\$(Platform)\$(Configuration);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)3rdParty\glew-2.1.0\lib\Release\$(Platform);$(ProjectDir)3rdParty\SDL2\lib\$(PlatformTarget);$(ProjectDir)3rdParty\vld\lib\$(PlatformTarget);$(ProjectDir)3rdParty\SDL2_image\lib\$(PlatformTarget);$(SolutionDir)ECS\lib\$(Platform)\$(Configuration);$(SolutionDir)GUI\lib\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2_image.lib;vld.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;SDL2main.lib;SDL2.lib;ECS.lib;GUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo Copying .dll files
