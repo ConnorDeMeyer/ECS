@@ -442,7 +442,7 @@ void TypeView<Component>::DeserializeView(std::istream& stream)
 
 	// Verify size;
 	auto endPos = stream.tellg();
-	if (endPos - beginPos != dataSize)
+	if (size_t(endPos - beginPos) != dataSize)
 	{
 		auto typeName = TypeInformation::GetTypeName(reflection::type_id<Component>());
 		throw std::runtime_error("Deserializing failed for " + std::string(typeName) + ". Amount of data written ("

@@ -83,7 +83,7 @@ void RenderingSystem::Execute()
 	if (elementsAmount > m_BufferSize)
 	{
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Render) * elementsAmount, m_TypeView->GetData(), GL_DYNAMIC_DRAW);
-		m_BufferSize = elementsAmount;
+		m_BufferSize = uint32_t(elementsAmount);
 	}
 	else
 	{
