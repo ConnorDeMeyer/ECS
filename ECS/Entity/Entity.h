@@ -6,6 +6,9 @@ using entityId = size_t;
 
 class EntityRegistry;
 
+/**
+ * Class that contains an entityId and reference to the EntityRegistry it was created at.
+ */
 class Entity final
 {
 

@@ -2,6 +2,9 @@
 #include "Entity.h"
 #include "../Registry/EntityRegistry.h"
 
+/**
+ * Wrapper class for Entity that allows for easily adding, getting and removing Components.
+ */
 class GameObject final
 {
 public:
