@@ -90,7 +90,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SYSTEM_PROFILER;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -118,7 +118,7 @@ EXIT /B 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SYSTEM_PROFILER;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -146,7 +146,7 @@ EXIT /B 0</Command>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SYSTEM_PROFILER;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -174,7 +174,7 @@ EXIT /B 0</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);SYSTEM_PROFILER;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)3rdParty\glew-2.1.0\include;$(ProjectDir)3rdParty\glm;$(ProjectDir)3rdParty\SDL2\include;$(ProjectDir)3rdParty\vld\include;$(ProjectDir)3rdParty\SDL2_image\include;$(SolutionDir)ECS;$(SolutionDir)GUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
