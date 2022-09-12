@@ -41,6 +41,16 @@ enum class SortingProgress : uint8_t
 	copying
 };
 
+struct TypeViewInfo
+{
+	uint32_t typeId;
+	std::string typeName;
+	size_t ElementSize;
+	size_t totalSize;
+	size_t activeAmount;
+	size_t inactiveAmount;
+};
+
 class EntityRegistry;
 
 class TypeViewBase
@@ -90,6 +100,14 @@ public:
 	virtual void Remove(entityId id) = 0;
 
 	virtual void PrintType(std::ostream& stream) = 0;
+
+	virtual TypeViewInfo GetInfo() = 0;
+
+	virtual void UpdateInfo(TypeViewInfo&) = 0;
+
+	virtual VoidReference AddEntity(entityId id) = 0;
+
+	virtual void* AddAfterUpdate_void(entityId id) = 0;
 
 	size_t GetSize() const
 	{

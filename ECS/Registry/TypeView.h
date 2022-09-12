@@ -105,13 +105,21 @@ public:
 	/** Sets the element active*/
 	void SetActive(const Component* element);
 
-	uint32_t GetTypeId() const override { return reflection::type_id<Component>(); }
+	uint32_t GetTypeId() const override { return typeId; }
 
 	void SerializeView(std::ostream& stream) override;
 
 	void DeserializeView(std::istream& stream) override;
 
 	void PrintType(std::ostream& stream) override;
+
+	TypeViewInfo GetInfo() override;
+
+	void UpdateInfo(TypeViewInfo&) override;
+
+	VoidReference AddEntity(entityId id) override;
+
+	void* AddAfterUpdate_void(entityId id) override;
 
 private:
 
@@ -162,6 +170,7 @@ private:
 
 	std::vector<std::pair<entityId, Component>> m_AddedEntitiesUpdate;
 
+	const uint32_t typeId{ reflection::type_id<Component>() };
 	const size_t m_ElementSize{ sizeof(Component) };
 
 	float m_AccumulatedTime{};
@@ -309,14 +318,14 @@ void TypeView<T>::Remove(entityId id)
 	auto it = m_EntityDataReferences.find(id);
 	if (it != m_EntityDataReferences.end())
 	{
+		for (auto& callback : OnElementRemove)
+			callback(this, id);
+
 		size_t pos = it->second->m_ptr - m_Data.data();
 
 		// swap remove
 		m_Data[pos] = std::move(m_Data.back());
 		m_Data.pop_back();
-
-		for (auto& callback : OnElementRemove)
-			callback(this, id);
 
 		// deallocate if no references to the element exists
 		if (it->second->GetReferencesAmount() == 0)
@@ -326,7 +335,7 @@ void TypeView<T>::Remove(entityId id)
 
 		m_EntityDataReferences.erase(it);
 
-		m_DataFlag = ViewDataFlag::dirty;
+		SetViewDataFlag(ViewDataFlag::dirty);
 	}
 }
 
@@ -371,7 +380,7 @@ void TypeView<Component>::SerializeView(std::ostream& stream)
 {
 	WriteStream(stream, GetSize());
 
-	// Serialize the Data Entity map
+	// Serialize the Data Entities map
 	stream.write(reinterpret_cast<const char*>(m_DataEntityMap.data()), GetSize() * sizeof(entityId));
 
 	//static_assert(std::is_trivially_copyable_v<Component> || Streamable<Component>, 
@@ -468,6 +477,40 @@ template <typename T>
 void TypeView<T>::PrintType(std::ostream& stream)
 {
 	stream << '[' << reflection::type_name<T>() << ']';
+}
+
+template <typename Component>
+TypeViewInfo TypeView<Component>::GetInfo()
+{
+	return TypeViewInfo
+	{
+		GetTypeId(),
+		TypeInformation::GetTypeName(GetTypeId()),
+		m_ElementSize,
+		GetSize(),
+		GetActiveAmount(),
+		GetInactiveAmount()
+	};
+}
+
+template <typename Component>
+void TypeView<Component>::UpdateInfo(TypeViewInfo& info)
+{
+	info.totalSize = GetSize();
+	info.activeAmount = GetActiveAmount();
+	info.inactiveAmount = GetInactiveAmount();
+}
+
+template <typename Component>
+VoidReference TypeView<Component>::AddEntity(entityId id)
+{
+	return VoidReference(static_cast<void*>(&Add(id).GetReferencePointer()));
+}
+
+template <typename Component>
+void* TypeView<Component>::AddAfterUpdate_void(entityId id)
+{
+	return AddAfterUpdate(id);
 }
 
 template <typename T>
