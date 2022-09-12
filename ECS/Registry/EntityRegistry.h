@@ -19,14 +19,16 @@
 
 class EntityRegistry final
 {
-private:
+public:
 
-	/** System Profiler info*/
+	/** System Profiler info. use #define SYSTEM_PROFILER to activate profiler*/
 	struct ProfilerInfo
 	{
-		uint64_t timesExecuted;
-		std::chrono::milliseconds timeToExecuteSystem;
-		std::chrono::microseconds timeToExecutePerComponent;
+		ProfilerInfo(SystemBase* _system) : system(_system) { }
+		SystemBase* system{};
+		uint64_t timesExecuted{};
+		std::chrono::milliseconds timeToExecuteSystem{0};
+		std::chrono::microseconds timeToExecutePerComponent{0};
 	};
 
 public:
@@ -63,10 +65,17 @@ public:
 	template <typename System>
 	SystemBase* AddSystem(const SystemParameters& parameters, bool AddSubSystems = true) requires std::is_base_of_v<SystemBase, System>;
 
+	/** Adds the default systems associated to the Component*/
 	template <typename Component>
 	void AddDefaultSystems();
 
+	/** Adds the default systems associated to the TypeId of a Component*/
 	void AddDefaultSystems(uint32_t typeId);
+
+	/** Returns the list of Systems registered inside of the Registry*/
+	const auto& GetSystems() const { return m_Systems; }
+
+	bool ContainsSystem(const std::string& name) const;
 
 	/**
 	 * Add a System to the registry given the name of the system
@@ -80,7 +89,9 @@ public:
 	/** Prints the names of the added Systems to the console*/
 	void PrintSystems() const;
 
+	/** Prints all the systems inside of the registry to the stream including default and subsystems*/
 	void PrintAllSystems(std::ostream& stream) const;
+	/** Prints All the systems to the console*/
 	void PrintAllSystems() const;
 
 	/**
@@ -136,14 +147,17 @@ public:
 	template <typename Component>
 	TypeView<Component>& GetOrCreateView();
 
+	/** Get a list of all the TypeViews inside the Registry*/
+	const auto& GetTypeViews() const { return m_TypeViews; }
+
 	/**
 	 * ENTITIES
 	 */
 
-	/** Creates an Entity that is linked to the Registry*/
+	/** Creates an Entities that is linked to the Registry*/
 	Entity CreateEntity();
 
-	/** Removes the Entity from the Registry and removes its components*/
+	/** Removes the Entities from the Registry and removes its components*/
 	void RemoveEntity(const Entity& entity);
 	void RemoveEntity(entityId id);
 
@@ -184,6 +198,9 @@ public:
 	template <typename... Components>
 	[[nodiscard]] TypeBinding* GetOrCreateBinding();
 
+	/** Returns the list of all Type Bindings inside the Registry*/
+	const auto& GetTypeBindings() const { return m_TypeBindings; }
+
 	/**
 	 * MISC
 	 */
@@ -197,6 +214,10 @@ public:
 	/** Deserialize the Registry from the given stream.*/
 	void Deserialize(std::istream& stream);
 
+#ifdef SYSTEM_PROFILER
+	const std::unordered_map<std::string, ProfilerInfo>& GetProfilerInfo() const { return m_ProfilerInfo; };
+#endif
+
 	/**
 	 * COMPONENTS
 	 */
@@ -206,24 +227,40 @@ public:
 	Reference<Component> GetComponent(const Entity& entity);
 	template <typename Component>
 	Reference<Component> GetComponent(entityId id);
+	VoidReference GetComponent(uint32_t typeId, entityId id);
+	VoidReference GetComponent(uint32_t typeId, const Entity& entity);
 
 	/** Adds a Component to the given entity*/
 	template <typename Component>
 	Reference<Component> AddComponentInstantly(const Entity& entity);
 	template <typename Component>
 	Reference<Component> AddComponentInstantly(entityId id);
+	VoidReference AddComponentInstantly(uint32_t typeId, const Entity& entity);
+	VoidReference AddComponentInstantly(uint32_t typeId, entityId id);
 
 	/** Adds the component to the given entity at the end of the Update cycle*/
 	template <typename Component>
 	Component* AddComponent(const Entity& entity);
 	template <typename Component>
 	Component* AddComponent(entityId id);
+	void* AddComponent(uint32_t typeId, const Entity& entity);
+	void* AddComponent(uint32_t typeId, entityId id);
 
-	/** Removes the component from the given Entity*/
+	/** Removes the component from the given Entities*/
 	template <typename Component>
 	void RemoveComponent(const Entity& entity);
 	template <typename Component>
 	void RemoveComponent(entityId id);
+	void RemoveComponent(uint32_t typeId, const Entity& entity);
+	void RemoveComponent(uint32_t typeId, entityId id);
+
+	/** Removes the component from the given Entities Instantly*/
+	template <typename Component>
+	void RemoveComponentInstantly(const Entity& entity);
+	template <typename Component>
+	void RemoveComponentInstantly(entityId id);
+	void RemoveComponentInstantly(uint32_t typeId, const Entity& entity);
+	void RemoveComponentInstantly(uint32_t typeId, entityId id);
 
 private:
 
@@ -453,31 +490,15 @@ Reference<T> EntityRegistry::GetComponent(const Entity& entity)
 template <typename T>
 Reference<T> EntityRegistry::GetComponent(entityId id)
 {
-	assert(id != Entity::InvalidId);
-	auto it = m_TypeViews.find(reflection::type_id<T>());
-	if (it != m_TypeViews.end())
-	{
-		return reinterpret_cast<TypeView<T>*>(it->second.get())->Get(id);
-	}
-	return Reference<T>::InvalidRef();
+	constexpr uint32_t typeId{ reflection::type_id<T>() };
+	return GetComponent(typeId, id).ToReference<T>();
 }
 
 template <typename T>
 Reference<T> EntityRegistry::AddComponentInstantly(entityId id)
 {
-	assert(id != Entity::InvalidId);
-	assert(m_Entities.contains(id));
 	constexpr uint32_t typeId = reflection::type_id<T>();
-	auto it = m_TypeViews.find(typeId);
-	if (it != m_TypeViews.end())
-	{
-		return reinterpret_cast<TypeView<T>*>(it->second.get())->Add(id);
-	}
-	else
-	{
-		AddView<T>();
-		return AddComponentInstantly<T>(id);
-	}
+	return AddComponentInstantly(typeId, id).ToReference<T>();
 }
 
 template <typename T>
@@ -489,20 +510,8 @@ Reference<T> EntityRegistry::AddComponentInstantly(const Entity& entity)
 template <typename T>
 T* EntityRegistry::AddComponent(entityId id)
 {
-	assert(id != Entity::InvalidId);
-	assert(m_Entities.contains(id));
-
 	constexpr uint32_t typeId = reflection::type_id<T>();
-	auto it = m_TypeViews.find(typeId);
-	if (it != m_TypeViews.end())
-	{
-		return reinterpret_cast<TypeView<T>*>(it->second.get())->AddAfterUpdate(id);
-	}
-	else
-	{
-		AddView<T>();
-		return AddComponent<T>(id);
-	}
+	return AddComponent(typeId, id);
 }
 
 template <typename T>
@@ -514,7 +523,22 @@ T* EntityRegistry::AddComponent(const Entity& entity)
 template <typename T>
 void EntityRegistry::RemoveComponent(entityId id)
 {
-	m_RemovedComponents.emplace_back(reflection::type_id<T>(), id);
+	constexpr uint32_t typeId = reflection::type_id<T>();
+	RemoveComponent(typeId, id);
+}
+
+template <typename Component>
+void EntityRegistry::RemoveComponentInstantly(const Entity& entity)
+{
+	constexpr uint32_t typeId = reflection::type_id<Component>();
+	RemoveComponentInstantly(typeId, entity);
+}
+
+template <typename Component>
+void EntityRegistry::RemoveComponentInstantly(entityId id)
+{
+	constexpr uint32_t typeId = reflection::type_id<Component>();
+	RemoveComponentInstantly(typeId, id);
 }
 
 template <typename T>
@@ -534,7 +558,7 @@ void EntityRegistry::AddDynamicViewSubSystems(const SystemParameters& parameters
 		TypeView<Component>* view = reinterpret_cast<TypeView<Component>*>(GetOrCreateView(subclassId));
 
 		SystemParameters newParams = parameters;
-		newParams.name = parameters.name + "_" + std::string(TypeInformation::GetTypeName(subclassId));
+		newParams.name = parameters.name + "_" + TypeInformation::GetTypeName(subclassId);
 
 		auto system = new ViewSystemDynamic<Component>{ newParams, function };
 
@@ -595,7 +619,7 @@ void EntityRegistry::AddDynamicViewSubSystemsDT(const SystemParameters& paramete
 		TypeView<Component>* view = reinterpret_cast<TypeView<Component>*>(GetOrCreateView(subclassId));
 
 		SystemParameters newParams = parameters;
-		newParams.name = parameters.name + "_" + std::string(TypeInformation::GetTypeName(subclassId));
+		newParams.name = parameters.name + "_" + TypeInformation::GetTypeName(subclassId);
 
 		auto system = new ViewSystemDynamicDT<Component>{ newParams, functionDT };
 
@@ -694,7 +718,7 @@ void EntityRegistry::AddViewSubSystem(const SystemParameters& parameters)
 		TypeView<Component>* subView = reinterpret_cast<TypeView<Component>*>(GetOrCreateView(SubClassId));
 
 		SystemParameters newParams = parameters;
-		newParams.name = parameters.name + "_" + std::string(TypeInformation::GetTypeName(SubClassId));
+		newParams.name = parameters.name + "_" + TypeInformation::GetTypeName(SubClassId);
 
 		auto system = new System( newParams );
 

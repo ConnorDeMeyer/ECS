@@ -22,6 +22,16 @@ void EntityRegistry::AddDefaultSystems(uint32_t typeId)
 	ECSTypeInformation::AddDefaultSystems(typeId, this);
 }
 
+bool EntityRegistry::ContainsSystem(const std::string& name) const
+{
+	for (auto& system : m_Systems)
+	{
+		if (system->GetSystemParameters().name == name)
+			return true;
+	}
+	return false;
+}
+
 SystemBase* EntityRegistry::AddSystem(const std::string& name)
 {
 	auto& systemAdder = ECSTypeInformation::GetSystemAdders();
@@ -79,7 +89,7 @@ void EntityRegistry::PrintSystemInformation(std::ostream& stream) const
 		auto it = m_ProfilerInfo.find(system->GetSystemParameters().name);
 		if (it != m_ProfilerInfo.end())
 		{
-			stream << "\nTime Executed: " << it->second.timesExecuted;
+			stream << "\nTimes Executed: " << it->second.timesExecuted;
 			stream << "\nTime to Execute System: " << it->second.timeToExecuteSystem;
 			//stream << "\nRelative Time to Execute: " << it->second.timeToExecuteSystem
 			stream << "\nTime to execute per Component: " << it->second.timeToExecutePerComponent;
@@ -109,7 +119,17 @@ void EntityRegistry::RemoveSystem(std::string name)
 
 	if (it != m_Systems.end())
 	{
+		auto typeIds = it->get()->GetTypeIds();
+
 		m_Systems.erase(it);
+
+		// Remove subsystems
+		for (uint32_t typeId : typeIds)
+			for (auto sysIt{ m_Systems.begin() }; sysIt != m_Systems.end();)
+				if (sysIt->get()->IsSubSystem(typeId))
+					m_Systems.erase(sysIt++);
+				else
+					++sysIt;
 	}
 }
 
@@ -147,8 +167,7 @@ void EntityRegistry::RemoveEntity(const Entity& entity)
 
 void EntityRegistry::RemoveEntity(entityId id)
 {
-	assert(m_Entities.contains(id));
-	if (id != Entity::InvalidId)
+	if (id != Entity::InvalidId && m_Entities.contains(id))
 		m_RemovedEntities.emplace_back(id);
 }
 
@@ -235,13 +254,19 @@ void EntityRegistry::Update(float deltaTime)
 		system->Update(deltaTime);
 		auto end = std::chrono::high_resolution_clock::now();
 
+		if (!m_ProfilerInfo.contains(system->GetSystemParameters().name))
+			m_ProfilerInfo.emplace(system->GetSystemParameters().name, ProfilerInfo{ system.get() });
+
 		// If leftover deltaTime is smaller than given DeltaTime it means it executed
 		if (system->GetAccumulatedTime() < deltaTime)
 		{
-			auto& profilerInfo = m_ProfilerInfo[system->GetSystemParameters().name];
+			float updateInterval = system->GetSystemParameters().updateInterval;
+			int timeAdjustment = (updateInterval != 0.f) ? int(updateInterval / deltaTime) : 1;
+
+			auto& profilerInfo = m_ProfilerInfo.find(system->GetSystemParameters().name)->second;
 			++profilerInfo.timesExecuted;
-			profilerInfo.timeToExecuteSystem = std::chrono::milliseconds((end - begin).count());
-			profilerInfo.timeToExecutePerComponent = profilerInfo.timeToExecuteSystem / system->GetEntityAmount();
+			profilerInfo.timeToExecuteSystem = std::chrono::milliseconds((end - begin).count() / timeAdjustment);
+			profilerInfo.timeToExecutePerComponent = profilerInfo.timeToExecuteSystem / system->GetEntityAmount() / timeAdjustment;
 		}
 #else
 		system->Update(deltaTime);
@@ -336,5 +361,91 @@ void EntityRegistry::Deserialize(std::istream& stream)
 			ECSTypeInformation::GetTypeViewAdders().find(id)->second(this);
 		m_TypeViews[id]->DeserializeView(stream);
 	}
+}
+
+VoidReference EntityRegistry::GetComponent(uint32_t typeId, entityId id)
+{
+	assert(id != Entity::InvalidId);
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		return it->second->GetVoidReference(id);
+	}
+	return VoidReference(nullptr);
+}
+
+VoidReference EntityRegistry::GetComponent(uint32_t typeId, const Entity& entity)
+{
+	return GetComponent(typeId, entity.GetId());
+}
+
+VoidReference EntityRegistry::AddComponentInstantly(uint32_t typeId, const Entity& entity)
+{
+	return AddComponentInstantly(typeId, entity.GetId());
+}
+
+VoidReference EntityRegistry::AddComponentInstantly(uint32_t typeId, entityId id)
+{
+	assert(id != Entity::InvalidId);
+	assert(m_Entities.contains(id));
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		return it->second->AddEntity(id);
+	}
+	else
+	{
+		AddView(typeId);
+		return AddComponentInstantly(typeId, id);
+	}
+}
+
+void* EntityRegistry::AddComponent(uint32_t typeId, const Entity& entity)
+{
+	return AddComponent(typeId, entity.GetId());
+}
+
+void* EntityRegistry::AddComponent(uint32_t typeId, entityId id)
+{
+	assert(id != Entity::InvalidId);
+	assert(m_Entities.contains(id));
+	
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		return it->second->AddAfterUpdate_void(id);
+	}
+	else
+	{
+		AddView(typeId);
+		return AddComponent(typeId, id);
+	}
+}
+
+void EntityRegistry::RemoveComponent(uint32_t typeId, const Entity& entity)
+{
+	RemoveComponent(typeId, entity.GetId());
+}
+
+void EntityRegistry::RemoveComponent(uint32_t typeId, entityId id)
+{
+	m_RemovedComponents.emplace_back(typeId, id);
+}
+
+void EntityRegistry::RemoveComponentInstantly(uint32_t typeId, const Entity& entity)
+{
+	RemoveComponentInstantly(typeId, entity.GetId());
+}
+
+void EntityRegistry::RemoveComponentInstantly(uint32_t typeId, entityId id)
+{
+	m_Entities.erase(id);
+
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		it->second->Remove(id);
+	}
+
 }
 
