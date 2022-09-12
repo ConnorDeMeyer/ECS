@@ -22,11 +22,16 @@ public:
 	TypeView<Components>* GetTypeView() const { return m_TypeView; }
 	void SetTypeView(TypeView<Components>* view) { m_TypeView = view; }
 
-	constexpr uint32_t GetTypeId() const { return reflection::type_id<Components>(); }
-	constexpr std::string_view GetTypeName() const { return reflection::type_name<Components>(); }
+	constexpr uint32_t GetTypeId() const { return m_TypeView->GetTypeId(); }
+	const std::string& GetTypeName() const { return TypeInformation::GetTypeName(GetTypeId()); }
 
 	size_t GetEntityAmount() override { return m_TypeView->GetActiveAmount(); }
 	void PrintTypes(std::ostream& stream) override { m_TypeView->PrintType(stream); }
+
+	/** Slower then GetTypes*/
+	std::vector<uint32_t> GetTypeIds() override { return std::vector<uint32_t>{ {GetTypeId()}}; }
+
+	bool IsSubSystem(uint32_t baseId) override {return TypeInformation::IsSubClass(baseId, GetTypeId());}
 
 protected:
 
@@ -54,6 +59,25 @@ public:
 
 	size_t GetEntityAmount() override { return m_Binding->GetSize(); }
 	void PrintTypes(std::ostream& stream) override { m_Binding->PrintTypes(stream); }
+
+	/** Slower then GetTypes*/
+	std::vector<uint32_t> GetTypeIds() override
+	{
+		auto ids = reflection::Type_ids<Components...>();
+		return std::vector<uint32_t>{ ids.begin(), ids.end() };
+	}
+
+	bool IsSubSystem(uint32_t baseId) override
+	{
+		size_t size{};
+		const uint32_t* types{ m_Binding->GetTypeIds(size) };
+		for (size_t i{}; i < size; ++i)
+		{
+			if (TypeInformation::IsSubClass(baseId, types[i]))
+				return true;
+		}
+		return false;
+	}
 
 protected:
 

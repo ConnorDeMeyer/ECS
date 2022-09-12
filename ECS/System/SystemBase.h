@@ -18,10 +18,12 @@ enum class ExecutionTime : int32_t
 	LateRender = 3000,
 };
 
-enum class SystemFlags : uint8_t
+using SystemFlagsType = uint8_t;
+enum class SystemFlags : SystemFlagsType
 {
 	SubSystem = 0,
 	DefaultSystem = 1,
+	Enabled = 2,
 
 	SIZE,
 };
@@ -58,7 +60,7 @@ class SystemBase
 {
 public:
 
-	SystemBase(const SystemParameters& params) : m_Parameters(params) { assert(params.updateInterval >= 0.f); }
+	SystemBase(const SystemParameters& params) : m_Parameters(params) { assert(params.updateInterval >= 0.f); Enable(); }
 	SystemBase() = default;
 	virtual ~SystemBase() = default;
 
@@ -66,10 +68,12 @@ public:
 	virtual void Initialize() {}
 	virtual size_t GetEntityAmount() = 0;
 	virtual void PrintTypes(std::ostream& stream) = 0;
+	virtual std::vector<uint32_t> GetTypeIds() = 0;
+	virtual bool IsSubSystem(uint32_t baseId) = 0;
 
 	void Update(float DeltaTime)
 	{
-		if ( (m_AccumulatedTime += DeltaTime) > m_Parameters.updateInterval)
+		if (IsEnabled() && (m_AccumulatedTime += DeltaTime) > m_Parameters.updateInterval)
 		{
 			m_DeltaTime = (m_Parameters.updateInterval == 0.f) ? DeltaTime : m_Parameters.updateInterval;
 			Execute();
@@ -77,14 +81,19 @@ public:
 		}
 	}
 
+	void Enable() { SetFlag(SystemFlags::Enabled, true); }
+	void Disable() { SetFlag(SystemFlags::Enabled, false); }
+
 	const SystemParameters& GetSystemParameters() const { return m_Parameters; }
 	float GetDeltaTime() const { return m_DeltaTime; }
 	float GetAccumulatedTime() const { return m_AccumulatedTime; }
 
-	bool IsSubSystem() const { return m_Flags[uint8_t(SystemFlags::SubSystem)]; }
-	bool IsDefaulySystem() const { return m_Flags[uint8_t(SystemFlags::DefaultSystem)]; }
+	bool IsSubSystem() const { return GetFlag(SystemFlags::SubSystem); }
+	bool IsDefaulySystem() const { return GetFlag(SystemFlags::DefaultSystem); }
+	bool IsEnabled() const { return GetFlag(SystemFlags::Enabled); }
 
-	void SetFlag(SystemFlags flag, bool value) { m_Flags[uint8_t(flag)] = value; }
+	void SetFlag(SystemFlags flag, bool value) { m_Flags[SystemFlagsType(flag)] = value; }
+	bool GetFlag(SystemFlags flag) const { return m_Flags[SystemFlagsType(flag)]; }
 
 private:
 
