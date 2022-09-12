@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "TypeInformation.h"
 
 class SystemBase;
 
@@ -86,3 +87,13 @@ concept isBindingSystem = std::is_base_of_v<SystemBase, Class> && requires(Class
 
 template <typename Class>
 concept isViewSystem = std::is_base_of_v<SystemBase, Class> && requires(Class sys) { sys.GetTypeView(); };
+
+
+/**
+ * Concepts for registering Class fields and functions
+ */
+
+class ClassMemberAdder;
+
+template <typename Class>
+concept HasMemberInfo = requires(Class t, ClassMemberAdder& adder) { t.RegisterMemberInfo(adder); };
