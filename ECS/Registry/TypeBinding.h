@@ -177,6 +177,8 @@ public:
 
 	size_t GetSize() const { return m_ContainedEntities.size(); }
 
+	const auto& GetEntities() const { return m_ContainedEntities; }
+
 private:
 
 	void Initialize();
