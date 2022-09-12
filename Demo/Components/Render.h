@@ -30,6 +30,17 @@ struct Render
 		
 		Depth = distribution(generator);
 	}
+
+	void RegisterMemberInfo(ClassMemberAdder& adder)
+	{
+		adder.RegisterMemberVar(Color);
+		adder.RegisterMemberVar(Transform);
+		adder.RegisterMemberVar(Uvs);
+		adder.RegisterMemberVar(Pivot);
+		adder.RegisterMemberVar(Depth);
+		adder.RegisterMemberVar(textureId);
+	}
+
 };
 
 inline RegisterClass<Render> RenderReg;
