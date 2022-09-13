@@ -41,7 +41,7 @@ public:
 
 	void Update(float deltaTime) override;
 
-	entityId GetId(const Component* element) const;
+	entityId GetEntityId(const Component* element) const;
 
 	entityId GetEntityId(const void* elementAddress) override;
 
@@ -90,6 +90,10 @@ public:
 	/** Returns the end of the iterator without inactive items*/
 	auto end() { return VoidIteratorType<Component>(m_Data.data() + m_Data.size(), m_ElementSize) - m_InactiveItems; }
 
+	auto beginInactives() { return VoidIteratorType<Component>(m_Data, m_ElementSize) + GetActiveAmount(); }
+
+	auto endInactive() { return VoidIteratorType<Component>(m_Data.back(), m_ElementSize) + 1; }
+
 	/** Returns the end of the array, including the inactive items*/
 	auto arrayEnd() { return m_Data.end(); }
 
@@ -104,6 +108,10 @@ public:
 
 	/** Sets the element active*/
 	void SetActive(const Component* element);
+
+	bool IsActive(entityId id) const;
+
+	bool IsActive(const Component* element) const;
 
 	uint32_t GetTypeId() const override { return typeId; }
 
@@ -120,6 +128,14 @@ public:
 	VoidReference AddEntity(entityId id) override;
 
 	void* AddAfterUpdate_void(entityId id) override;
+
+	void Enable(const VoidReference& ref) override;
+	void Enable(entityId id) override;
+	void Disable(const VoidReference& ref) override;
+	void Disable(entityId id) override;
+	bool IsEnabled(const VoidReference& ref) const override;
+	bool IsEnabled(entityId id) const override;
+
 
 private:
 
@@ -207,7 +223,7 @@ void TypeView<T>::Update(float deltaTime)
 }
 
 template <typename T>
-entityId TypeView<T>::GetId(const T* element) const
+entityId TypeView<T>::GetEntityId(const T* element) const
 {
 	assert(m_Data.data() - element < m_Data.size());
 	return m_DataEntityMap[m_Data.data() - element];
@@ -376,6 +392,18 @@ void TypeView<T>::SetActive(const T* element)
 }
 
 template <typename Component>
+bool TypeView<Component>::IsActive(entityId id) const
+{
+	return GetPositionInArray(id) < GetActiveAmount();
+}
+
+template <typename Component>
+bool TypeView<Component>::IsActive(const Component* element) const
+{
+	return GetPositionInArray(element) < GetActiveAmount();
+}
+
+template <typename Component>
 void TypeView<Component>::SerializeView(std::ostream& stream)
 {
 	WriteStream(stream, GetSize());
@@ -511,6 +539,44 @@ template <typename Component>
 void* TypeView<Component>::AddAfterUpdate_void(entityId id)
 {
 	return AddAfterUpdate(id);
+}
+
+template <typename Component>
+void TypeView<Component>::Enable(const VoidReference& ref)
+{
+	assert(ref.ToReference<Component>().IsValid());
+	SetActive(ref.ToReference<Component>().get());
+}
+
+template <typename Component>
+void TypeView<Component>::Enable(entityId id)
+{
+	SetActive(id);
+}
+
+template <typename Component>
+void TypeView<Component>::Disable(const VoidReference& ref)
+{
+	assert(ref.ToReference<Component>().IsValid());
+	SetInactive(ref.ToReference<Component>().get());
+}
+
+template <typename Component>
+void TypeView<Component>::Disable(entityId id)
+{
+	SetInactive(id);
+}
+
+template <typename Component>
+bool TypeView<Component>::IsEnabled(const VoidReference& ref) const
+{
+	return IsActive(ref.ToReference<Component>().get());
+}
+
+template <typename Component>
+bool TypeView<Component>::IsEnabled(entityId id) const
+{
+	return IsActive(id);
 }
 
 template <typename T>

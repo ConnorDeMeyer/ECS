@@ -449,3 +449,73 @@ void EntityRegistry::RemoveComponentInstantly(uint32_t typeId, entityId id)
 
 }
 
+void EntityRegistry::Enable(uint32_t typeId, entityId id)
+{
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		it->second->Enable(id);
+	}
+}
+
+void EntityRegistry::Enable(uint32_t typeId, const VoidReference& component)
+{
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		it->second->Enable(component);
+	}
+}
+
+void EntityRegistry::Enable(uint32_t typeId, const Entity& entity)
+{
+	Enable(typeId, entity.GetId());
+}
+
+void EntityRegistry::Disable(uint32_t typeId, entityId id)
+{
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		it->second->Disable(id);
+	}
+}
+
+void EntityRegistry::Disable(uint32_t typeId, const Entity& entity)
+{
+	Disable(typeId, entity.GetId());
+}
+
+void EntityRegistry::Disable(uint32_t typeId, const VoidReference& component)
+{
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		it->second->Disable(component);
+	}
+}
+
+bool EntityRegistry::IsEnabled(uint32_t typeId, entityId id) const
+{
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		return it->second->IsEnabled(id);
+	}
+	return false;
+}
+
+bool EntityRegistry::IsEnabled(uint32_t typeId, const Entity& entity) const
+{
+	return IsEnabled(typeId, entity.GetId());
+}
+
+bool EntityRegistry::IsEnabled(uint32_t typeId, const VoidReference& component) const
+{
+	auto it = m_TypeViews.find(typeId);
+	if (it != m_TypeViews.end())
+	{
+		return it->second->IsEnabled(component);
+	}
+	return false;
+}

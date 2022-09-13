@@ -50,7 +50,7 @@ RenderingSystem::RenderingSystem(const SystemParameters& parameters)
 
 	m_pTexture = std::make_unique<Texture2D>("Resources/Textures/fumoFace.png");
 	//m_pTexture = std::make_unique<Texture2D>("Resources/Textures/81642.png");
-	//glBindTexture(GL_TEXTURE_2D, m_pTexture->GetId());
+	//glBindTexture(GL_TEXTURE_2D, m_pTexture->GetEntityId());
 }
 
 RenderingSystem::~RenderingSystem()

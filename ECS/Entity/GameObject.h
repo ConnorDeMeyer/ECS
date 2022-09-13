@@ -35,23 +35,48 @@ public:
 		other.m_Entity.m_Id = Entity::InvalidId;
 	}
 
-	template <typename T>
-	Reference<T> GetComponent()
+	template <typename Component>
+	Reference<Component> GetComponent()
 	{
-		return m_Entity.GetRegistry().GetComponent<T>(m_Entity);
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		return m_Entity.GetRegistry().GetComponent(typeId, m_Entity);
 	}
 
-	template <typename T>
-	Reference<T> AddComponent()
+	template <typename Component>
+	Reference<Component> AddComponent()
 	{
-		return m_Entity.GetRegistry().AddComponentInstantly<T>(m_Entity);
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		return m_Entity.GetRegistry().AddComponentInstantly(typeId, m_Entity);
 	}
 
-	template <typename T>
+	template <typename Component>
 	void RemoveComponent()
 	{
-		m_Entity.GetRegistry().RemoveComponent<T>(m_Entity);
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		m_Entity.GetRegistry().RemoveComponent(typeId, m_Entity);
 	}
+
+	template <typename Component>
+	void Enable()
+	{
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		m_Entity.GetRegistry().Enable(typeId, m_Entity);
+	}
+
+	template <typename Component>
+	void Disable()
+	{
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		m_Entity.GetRegistry().Disable(typeId, m_Entity);
+	}
+
+	template <typename Component>
+	bool IsEnabled()
+	{
+		constexpr uint32_t typeId{ reflection::type_id<Component>() };
+		return m_Entity.GetRegistry().IsEnabled(typeId, m_Entity);
+	}
+
 
 private:
 

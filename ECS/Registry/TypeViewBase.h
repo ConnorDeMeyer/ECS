@@ -71,41 +71,53 @@ public:
 
 public:
 
+	/** Misc*/
+
 	virtual void Update(float deltaTime) = 0;
+	virtual void SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit) = 0;
+	virtual void SerializeView(std::ostream& stream) = 0;
+	virtual void DeserializeView(std::istream& stream) = 0;
+	virtual void PrintType(std::ostream& stream) = 0;
+	virtual TypeViewInfo GetInfo() = 0;
+	virtual void UpdateInfo(TypeViewInfo&) = 0;
+
+	/** Entities*/
 
 	const std::vector<entityId>& GetRegisteredEntities() const { return m_DataEntityMap; }
 
 	virtual bool Contains(entityId id) = 0;
-
 	virtual entityId GetEntityId(const void* elementAddress) = 0;
+	virtual VoidReference AddEntity(entityId id) = 0;
+
+	/** Enabling/Disabling*/
+
+	virtual void Enable(entityId id) = 0;
+	virtual void Enable(const VoidReference& ref) = 0;
+	virtual void Disable(entityId id) = 0;
+	virtual void Disable(const VoidReference& ref) = 0;
+	virtual bool IsEnabled(entityId id) const = 0;
+	virtual bool IsEnabled(const VoidReference& ref) const = 0;
+
+	/** Data access*/
 
 	/** Returns a void pointer to a reference pointer*/
 	virtual VoidReference GetVoidReference(entityId id) const = 0;
-
 	virtual VoidIterator GetVoidIterator() = 0;
 	virtual VoidIterator GetVoidIteratorEnd() = 0;
 
+	/** Data Modifiers*/
+
+	virtual void Remove(entityId id) = 0;
+
+	/** Type data*/
+
 	virtual uint32_t GetTypeId() const = 0;
+
+	/** Data information*/
 
 	ViewDataFlag GetDataFlag() const { return m_DataFlag; }
 
 	uint16_t GetDataFlagId() const { return m_DataFlagId; }
-
-	virtual void SortData(volatile SortingProgress& sortingProgress, const volatile bool& quit) = 0;
-
-	virtual void SerializeView(std::ostream& stream) = 0;
-
-	virtual void DeserializeView(std::istream& stream) = 0;
-
-	virtual void Remove(entityId id) = 0;
-
-	virtual void PrintType(std::ostream& stream) = 0;
-
-	virtual TypeViewInfo GetInfo() = 0;
-
-	virtual void UpdateInfo(TypeViewInfo&) = 0;
-
-	virtual VoidReference AddEntity(entityId id) = 0;
 
 	virtual void* AddAfterUpdate_void(entityId id) = 0;
 

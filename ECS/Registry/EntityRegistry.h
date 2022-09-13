@@ -262,6 +262,39 @@ public:
 	void RemoveComponentInstantly(uint32_t typeId, const Entity& entity);
 	void RemoveComponentInstantly(uint32_t typeId, entityId id);
 
+	/** Enable components*/
+	template <typename  Component>
+	void Enable(entityId id);
+	template <typename Component>
+	void Enable(const Entity& entity);
+	void Enable(uint32_t typeId, entityId id);
+	void Enable(uint32_t typeId, const Entity& entity);
+	template <typename Component>
+	void Enable(const Reference<Component>& component);
+	void Enable(uint32_t typeId, const VoidReference& component);
+
+	/** Disable components*/
+	template <typename Component>
+	void Disable(entityId id);
+	template <typename Component>
+	void Disable(const Entity& entity);
+	void Disable(uint32_t typeId, entityId id);
+	void Disable(uint32_t typeId, const Entity& entity);
+	template <typename Component>
+	void Disable(const Reference<Component>& component);
+	void Disable(uint32_t typeId, const VoidReference& component);
+
+	/** Query enabled status*/
+	template <typename Component>
+	bool IsEnabled(entityId id) const;
+	template <typename Component>
+	bool IsEnabled(const Entity& entity) const;
+	bool IsEnabled(uint32_t typeId, entityId id) const;
+	bool IsEnabled(uint32_t typeId, const Entity& entity) const;
+	template <typename Component>
+	bool IsEnabled(const Reference<Component>& component) const;
+	bool IsEnabled(uint32_t typeId, const VoidReference& component) const;
+
 private:
 
 	/**
@@ -539,6 +572,69 @@ void EntityRegistry::RemoveComponentInstantly(entityId id)
 {
 	constexpr uint32_t typeId = reflection::type_id<Component>();
 	RemoveComponentInstantly(typeId, id);
+}
+
+template <typename Component>
+void EntityRegistry::Enable(entityId id)
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	Enable(typeId, id);
+}
+
+template <typename Component>
+void EntityRegistry::Enable(const Entity& entity)
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	Enable(typeId, entity);
+}
+
+template <typename Component>
+void EntityRegistry::Enable(const Reference<Component>& component)
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	Enable(typeId, component);
+}
+
+template <typename Component>
+void EntityRegistry::Disable(entityId id)
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	Disable(typeId, id);
+}
+
+template <typename Component>
+void EntityRegistry::Disable(const Entity& entity)
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	Disable(typeId, entity);
+}
+
+template <typename Component>
+void EntityRegistry::Disable(const Reference<Component>& component)
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	Disable(typeId, component);
+}
+
+template <typename Component>
+bool EntityRegistry::IsEnabled(entityId id) const
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	return IsEnabled(typeId, id);
+}
+
+template <typename Component>
+bool EntityRegistry::IsEnabled(const Entity& entity) const
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	return IsEnabled(typeId, entity);
+}
+
+template <typename Component>
+bool EntityRegistry::IsEnabled(const Reference<Component>& component) const
+{
+	constexpr uint32_t typeId{ reflection::type_id<Component>() };
+	return IsEnabled(typeId, component);
 }
 
 template <typename T>
