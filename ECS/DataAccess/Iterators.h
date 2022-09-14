@@ -2,6 +2,11 @@
 #include <cstdint>
 #include <iterator>
 
+/**
+ * Iterator that iterates over elements without knowing the type of the elements it is iterating over.
+ * It only needs to know the size of the element so it can increase its internal void pointer by that amount of bytes.
+ * Only works with data that is adjacent to each other like arrays and vectors.
+ */
 class VoidIterator final
 {
 	template <typename T>
@@ -63,6 +68,11 @@ private:
 	size_t m_VariableSize{};
 };
 
+/**
+ * Void iterator but returns a Type element instead of a void pointer.
+ * It wont increase the underlying pointer by the size of the Type but will still use the size given in the voidIterator
+ * This is handy for iterating over Inherited classes while still using systems for the base classes giving the ability to use a polymorphism.
+ */
 template <typename T>
 class VoidIteratorType final
 {
