@@ -295,6 +295,14 @@ public:
 	bool IsEnabled(const Reference<Component>& component) const;
 	bool IsEnabled(uint32_t typeId, const VoidReference& component) const;
 
+	/** Enable Entity*/
+	void EnableEntity(entityId id);
+	void EnableEntity(const Entity& entity);
+
+	/** Disable Entity*/
+	void DisableEntity(entityId id);
+	void DisableEntity(const Entity& entity);
+
 private:
 
 	/**

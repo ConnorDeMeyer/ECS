@@ -519,3 +519,27 @@ bool EntityRegistry::IsEnabled(uint32_t typeId, const VoidReference& component) 
 	}
 	return false;
 }
+
+void EntityRegistry::EnableEntity(entityId id)
+{
+	for (auto& view : m_TypeViews)
+		if (view.second->Contains(id))
+			view.second->Enable(id);
+}
+
+void EntityRegistry::EnableEntity(const Entity& entity)
+{
+	EnableEntity(entity.GetId());
+}
+
+void EntityRegistry::DisableEntity(entityId id)
+{
+	for (auto& view : m_TypeViews)
+		if (view.second->Contains(id))
+			view.second->Disable(id);
+}
+
+void EntityRegistry::DisableEntity(const Entity& entity)
+{
+	DisableEntity(entity.GetId());
+}

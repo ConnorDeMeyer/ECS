@@ -39,14 +39,14 @@ public:
 	Reference<Component> GetComponent()
 	{
 		constexpr uint32_t typeId{ reflection::type_id<Component>() };
-		return m_Entity.GetRegistry().GetComponent(typeId, m_Entity);
+		return m_Entity.GetRegistry().GetComponent(typeId, m_Entity).ToReference<Component>();
 	}
 
 	template <typename Component>
 	Reference<Component> AddComponent()
 	{
 		constexpr uint32_t typeId{ reflection::type_id<Component>() };
-		return m_Entity.GetRegistry().AddComponentInstantly(typeId, m_Entity);
+		return m_Entity.GetRegistry().AddComponentInstantly(typeId, m_Entity).ToReference<Component>();
 	}
 
 	template <typename Component>
@@ -75,6 +75,16 @@ public:
 	{
 		constexpr uint32_t typeId{ reflection::type_id<Component>() };
 		return m_Entity.GetRegistry().IsEnabled(typeId, m_Entity);
+	}
+
+	void EnableAll()
+	{
+		m_Entity.GetRegistry().EnableEntity(m_Entity.GetId());
+	}
+
+	void DisableAll()
+	{
+		m_Entity.GetRegistry().DisableEntity(m_Entity.GetId());
 	}
 
 
