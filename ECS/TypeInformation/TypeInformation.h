@@ -4,9 +4,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
+#include <type_traits>
 
 #include "Concepts.h"
 #include "reflection.h"
+
+/** Used instead of RegisterMemberVariable method of the ClassMemberAdder class*/
+#define RegisterMemberVar(memVar) RegisterMemberVariable(#memVar, sizeof(decltype(memVar)), offsetof(std::remove_reference_t<decltype(*this)>,memVar), reflection::type_id<decltype(memVar)>())
 
 template <typename To, typename From>
 static To* Cast(const From* ptr);
@@ -14,16 +18,50 @@ static To* Cast(const From* ptr);
 template <typename To, typename From>
 static To& Cast(const From& ref);
 
+struct ClassFieldInfo
+{
+	std::string name;
+	size_t size;
+	size_t offset;
+	uint32_t typeId;
+};
+
+using ClassFieldInfoMap = std::unordered_map<uint32_t, std::unordered_map<std::string, ClassFieldInfo>>;
+
+class ClassMemberAdder
+{
+private:
+	friend class TypeInformation;
+
+	ClassMemberAdder(uint32_t classId, ClassFieldInfoMap& map) : m_ClassId(classId), m_Map(map) {}
+
+public:
+
+	void RegisterMemberVariable(const std::string& name, size_t size, size_t offset, uint32_t typeId);
+
+	template <typename T>
+	void RegisterMemberVariable(const std::string& name, size_t offset)
+	{
+		RegisterMemberVariable(name, sizeof(T), offset, reflection::type_id<T>());
+	}
+
+private:
+
+	uint32_t m_ClassId{};
+	ClassFieldInfoMap& m_Map;
+
+};
+
 class TypeInformation
 {
 private:
 	struct Info
 	{
 		void* m_pVTable{};
-		std::string_view m_TypeName;
+		std::string m_TypeName;
 		size_t m_Size{};
 	};
-
+	
 public:
 
 	template <typename T>
@@ -37,7 +75,7 @@ public:
 	template <typename Base, typename Child>
 	static void AddBaseChildConnection();
 
-	static std::string_view GetTypeName(uint32_t typeId);
+	static const std::string& GetTypeName(uint32_t typeId);
 
 	[[nodiscard]] static std::vector<uint32_t> GetSubClasses(uint32_t typeId);
 
@@ -48,6 +86,8 @@ public:
 	[[nodiscard]] static std::vector<uint32_t> GetSubTypeCombinations(const uint32_t* typeIds, const size_t size);
 
 	[[nodiscard]] static bool IsSubClass(uint32_t base, uint32_t subType);
+
+	static std::unordered_map<std::string, ClassFieldInfo>& GetFieldInfo(uint32_t typeId);
 
 	//template <typename T>
 	//static bool IsSubClass(uint32_t baseClass, T* classInstance);
@@ -60,6 +100,7 @@ public:
 	static const std::unordered_map<void*, uint32_t>& GetVptrMap() { return GetInstance().m_VptrClassMap; }
 	static const std::unordered_map<uint32_t, std::unordered_set<uint32_t>>& GetClassHierarchy() { return GetInstance().m_ClassHierarchy; }
 	static std::unordered_map<uint32_t, std::vector<uint32_t>>& GetParentClasses() { return GetInstance().m_ParentClasses; }
+	static const std::unordered_map<uint32_t, Info>& GetAllTypeInformation() { return GetInstance().m_TypeInformation; }
 
 private:
 
@@ -69,6 +110,8 @@ private:
 	std::unordered_map<uint32_t, std::unordered_set<uint32_t>> m_ClassHierarchy;
 	std::unordered_map<uint32_t, std::vector<uint32_t>> m_ParentClasses;
 	std::unordered_map<void*, uint32_t> m_VptrClassMap;
+
+	ClassFieldInfoMap m_ClassFieldInfo;
 
 };
 
@@ -94,13 +137,19 @@ void TypeInformation::AddClass()
 
 	Info info{};
 
-	info.m_TypeName = reflection::type_name<T>();
+	info.m_TypeName = std::string(reflection::type_name<T>());
 	info.m_Size = sizeof(T);
 	
 	if constexpr (std::is_polymorphic_v<T>)
 	{
 		info.m_pVTable = static_cast<void*>(&TypeInstance);
 		instance.m_VptrClassMap.emplace(info.m_pVTable, typeId);
+	}
+
+	if constexpr (HasMemberInfo<T>)
+	{
+		ClassMemberAdder adder(typeId, instance.m_ClassFieldInfo);
+		TypeInstance.RegisterMemberInfo(adder);
 	}
 
 	instance.m_TypeInformation.insert({ typeId, std::move(info) });

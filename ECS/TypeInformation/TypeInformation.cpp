@@ -1,6 +1,6 @@
 ﻿#include "TypeInformation.h"
 
-std::string_view TypeInformation::GetTypeName(uint32_t typeId)
+const std::string& TypeInformation::GetTypeName(uint32_t typeId)
 {
 	assert(GetInstance().m_TypeInformation.contains(typeId));
 	return GetInstance().m_TypeInformation.find(typeId)->second.m_TypeName;
@@ -26,6 +26,12 @@ std::string_view TypeInformation::GetTypeName(uint32_t typeId)
 	}
 
 	return subClasses;
+}
+
+void ClassMemberAdder::RegisterMemberVariable(const std::string& name, size_t size, size_t offset,
+	uint32_t typeId)
+{
+	m_Map[m_ClassId].emplace(name, ClassFieldInfo{ name, size, offset, typeId });
 }
 
 const TypeInformation::Info& TypeInformation::GetTypeInfo(uint32_t typeId)
@@ -186,6 +192,11 @@ bool RecursiveParentSearch(uint32_t goal, uint32_t current)
 bool TypeInformation::IsSubClass(uint32_t base, uint32_t subType)
 {
 	return RecursiveParentSearch(base, subType);
+}
+
+std::unordered_map<std::string, ClassFieldInfo>& TypeInformation::GetFieldInfo(uint32_t typeId)
+{
+	return GetInstance().m_ClassFieldInfo[typeId];
 }
 
 TypeInformation& TypeInformation::GetInstance()
