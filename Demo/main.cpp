@@ -10,7 +10,9 @@
 
 #include <SDL.h>
 
-#define REGISTRY_DESERIALIZE
+#include "GUI_main.h"
+
+//#define REGISTRY_DESERIALIZE
 #ifndef REGISTRY_DESERIALIZE
 #include "Components/Render.h"
 #include "Components/RenderModifiers.h"
@@ -27,6 +29,9 @@ int main(int, char* [])
 	int result = OpenGl::Initialize();
 	if (result != 0)
 		return result;
+
+	GUI::SetWindow(OpenGl::GetWindow());
+	GUI::InitializeImGui();
 
 	std::cout << "Press P to print System Stats\n";
 	std::cout << "Press O to serialize the registry\n";
@@ -65,7 +70,7 @@ int main(int, char* [])
 	registry.AddSystem("BaseClassNamePrinter");
 
 	std::vector<GameObject> objects;
-	constexpr size_t entitiesAmount{ 16'384 };
+	constexpr size_t entitiesAmount{ 16'384 / 4 };
 	objects.reserve(entitiesAmount);
 	for (size_t i{}; i < entitiesAmount; ++i)
 	{
@@ -87,11 +92,17 @@ int main(int, char* [])
 
 #endif
 
-	SDL::SetUpdateCallback([&registry](float deltaTime)
+	GUI::Registry::SetEntityRegistry(&registry);
+
+	SDL::SetUpdateCallback([&registry](float)
 		{
-			registry.Update(deltaTime);
+			//registry.Update(deltaTime);
+			GUI::UpdateGUI();
 		});
 
 	SDL::StartLoop();
+
+	GUI::Destroy();
+
 	return 0;
 }
