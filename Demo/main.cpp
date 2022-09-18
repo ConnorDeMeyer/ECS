@@ -12,7 +12,7 @@
 
 #include "GUI_main.h"
 
-//#define REGISTRY_DESERIALIZE
+#define REGISTRY_DESERIALIZE
 #ifndef REGISTRY_DESERIALIZE
 #include "Components/Render.h"
 #include "Components/RenderModifiers.h"
@@ -70,7 +70,7 @@ int main(int, char* [])
 	registry.AddSystem("BaseClassNamePrinter");
 
 	std::vector<GameObject> objects;
-	constexpr size_t entitiesAmount{ 16'384 / 4 };
+	constexpr size_t entitiesAmount{ 16'384 };
 	objects.reserve(entitiesAmount);
 	for (size_t i{}; i < entitiesAmount; ++i)
 	{

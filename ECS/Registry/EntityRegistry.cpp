@@ -315,7 +315,15 @@ void EntityRegistry::Serialize(std::ostream& stream) const
 				++SystemAmount;
 		WriteStream(stream, SystemAmount);
 	}
-	PrintSystems(stream);
+
+	for (auto& system : m_Systems)
+	{
+		if (!system->IsSubSystem() && !system->IsDefaulySystem())
+		{
+			stream << system->GetSystemParameters().name << '\n';
+			WriteStream(stream, system->IsEnabled());
+		}
+	}
 	
 	WriteStream(stream, m_Entities.size());
 	for (auto entity : m_Entities)
@@ -339,7 +347,13 @@ void EntityRegistry::Deserialize(std::istream& stream)
 	{
 		std::string systemName;
 		std::getline(stream, systemName, '\n');
-		AddSystem(systemName);
+
+		bool isEnabled{};
+		ReadStream(stream, isEnabled);
+
+		auto pSystem = AddSystem(systemName);
+		if (!isEnabled)
+			pSystem->Disable();
 	}
 
 	size_t entityAmount{};

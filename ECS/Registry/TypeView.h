@@ -407,12 +407,14 @@ template <typename Component>
 void TypeView<Component>::SerializeView(std::ostream& stream)
 {
 	WriteStream(stream, GetSize());
+	WriteStream(stream, m_InactiveItems);
 
 	// Serialize the Data Entities map
 	stream.write(reinterpret_cast<const char*>(m_DataEntityMap.data()), GetSize() * sizeof(entityId));
 
 	//static_assert(std::is_trivially_copyable_v<Component> || Streamable<Component>, 
 	//	"Component has to be trivially copyable (POD) for a Serialize and Deserialize method not to exist for the Component.\n Please define both Serialize(std::ostream&) and Deserialize(std::istream&) methods for the Component");
+
 
 	// add the size of the serialized data
 	const auto sizePos = stream.tellp();
@@ -450,6 +452,7 @@ void TypeView<Component>::DeserializeView(std::istream& stream)
 
 	size_t size{};
 	ReadStream(stream, size);
+	ReadStream(stream, m_InactiveItems);
 
 	// Resize the vectors
 	ResizeDataEntityMap(size);

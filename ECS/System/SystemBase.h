@@ -64,12 +64,12 @@ public:
 	SystemBase() = default;
 	virtual ~SystemBase() = default;
 
-	virtual void Execute() = 0;
-	virtual void Initialize() {}
-	virtual size_t GetEntityAmount() = 0;
-	virtual void PrintTypes(std::ostream& stream) = 0;
-	virtual std::vector<uint32_t> GetTypeIds() = 0;
-	virtual bool IsSubSystem(uint32_t baseId) = 0;
+	virtual void Execute						()								= 0;
+	virtual void Initialize						()								{}
+	virtual size_t GetEntityAmount				()								= 0;
+	virtual void PrintTypes						(std::ostream& stream)			= 0;
+	virtual std::vector<uint32_t> GetTypeIds	()								= 0;
+	virtual bool IsSubSystem					(uint32_t baseId)				= 0;
 
 	void Update(float DeltaTime)
 	{
@@ -81,24 +81,24 @@ public:
 		}
 	}
 
-	void Enable() { SetFlag(SystemFlags::Enabled, true); }
-	void Disable() { SetFlag(SystemFlags::Enabled, false); }
+	void Enable									()								{ SetFlag(SystemFlags::Enabled, true); }
+	void Disable								()								{ SetFlag(SystemFlags::Enabled, false); }
 
-	const SystemParameters& GetSystemParameters() const { return m_Parameters; }
-	float GetDeltaTime() const { return m_DeltaTime; }
-	float GetAccumulatedTime() const { return m_AccumulatedTime; }
+	const SystemParameters& GetSystemParameters	()					const		{ return m_Parameters; }
+	float GetDeltaTime							()					const		{ return m_DeltaTime; }
+	float GetAccumulatedTime					()					const		{ return m_AccumulatedTime; }
 
-	bool IsSubSystem() const { return GetFlag(SystemFlags::SubSystem); }
-	bool IsDefaulySystem() const { return GetFlag(SystemFlags::DefaultSystem); }
-	bool IsEnabled() const { return GetFlag(SystemFlags::Enabled); }
+	bool IsSubSystem							()					const		{ return GetFlag(SystemFlags::SubSystem); }
+	bool IsDefaulySystem						()					const		{ return GetFlag(SystemFlags::DefaultSystem); }
+	bool IsEnabled								()					const		{ return GetFlag(SystemFlags::Enabled); }
 
-	void SetFlag(SystemFlags flag, bool value) { m_Flags[SystemFlagsType(flag)] = value; }
-	bool GetFlag(SystemFlags flag) const { return m_Flags[SystemFlagsType(flag)]; }
+	bool GetFlag								(SystemFlags flag)	const		{ return m_Flags[SystemFlagsType(flag)]; }
+	void SetFlag								(SystemFlags flag, bool value)	{ m_Flags[SystemFlagsType(flag)] = value; }
 
 private:
 
-	SystemParameters m_Parameters;
-	float m_DeltaTime;
-	float m_AccumulatedTime;
-	std::bitset<uint8_t(SystemFlags::SIZE)> m_Flags;
+	SystemParameters							m_Parameters;
+	float										m_DeltaTime;
+	float										m_AccumulatedTime;
+	std::bitset<uint8_t(SystemFlags::SIZE)>		m_Flags;
 };
