@@ -12,7 +12,7 @@
 
 #include "GUI_main.h"
 
-#define REGISTRY_DESERIALIZE
+//#define REGISTRY_DESERIALIZE
 #ifndef REGISTRY_DESERIALIZE
 #include "Components/Render.h"
 #include "Components/RenderModifiers.h"
