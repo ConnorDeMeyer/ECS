@@ -142,7 +142,7 @@ void TypeInformation::AddClass()
 	
 	if constexpr (std::is_polymorphic_v<T>)
 	{
-		info.m_pVTable = static_cast<void*>(&TypeInstance);
+		info.m_pVTable = static_cast<void*&>(TypeInstance);
 		instance.m_VptrClassMap.emplace(info.m_pVTable, typeId);
 	}
 
