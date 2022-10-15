@@ -2,6 +2,8 @@
 
 An Entity Component System (ECS) made by Connor De Meyer. An ECS is a software architecture used primarily for video games where an entities are comprised by components of data. This data is stored as closely to each other as possible for easy and fast reading and modification. This architecture heavily benefits from CPU memory caching which improves performance.
 
+![ECSDemo](https://user-images.githubusercontent.com/68373215/195975986-7884b235-9750-4306-99e2-00ee923e04c3.PNG)
+
 ## Entity
 
 An Entity consist of 2 elements:
