@@ -119,6 +119,7 @@ struct Transform
 
 Whenever a Components have to exist in a sorted state you can specify a function by the signature of `bool SortCompare(const Component&, const Component&)`. If this function exists they Components will try to stay in a sorted state as much as possible.
 You can query the sorting state of a TypeView using the function `GetDataFlag()` and the data flag id using `GetDataFlagId()`. The data flag Id changes whenever the data becomes dirty again. This way you can check in between the data being dirty if it changed again.
+The algorithm used for sorting is SmoothSort, which is a sorting algorithm that comes close to O(n) when the data is already mostly sorted.
 
 ## Serializing
 
