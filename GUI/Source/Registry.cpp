@@ -112,7 +112,7 @@ void GUI::Registry::DrawTypeViews()
 									break;
 
 								char buffer[16];
-								sprintf_s(buffer, "%u", entityId);
+								sprintf_s(buffer, "%u", static_cast<unsigned int>(entityId));
 								ImGui::TableNextColumn();
 								if (ImGui::Selectable(buffer))
 								{
@@ -184,7 +184,7 @@ void GUI::Registry::DrawEntities()
 				for (auto entityId : g_pSelectedRegistry->GetEntities())
 				{
 					char buffer2[16];
-					sprintf_s(buffer2, "%u", entityId);
+					sprintf_s(buffer2, "%u", static_cast<unsigned int>(entityId));
 					if (buffer[0] == '\0' || (buffer[0] != '\0' && contains(buffer2, buffer)))
 					{
 						ImGui::TableNextColumn();
@@ -253,7 +253,7 @@ void GUI::Registry::DrawTypeBindings()
 								break;
 
 							char buffer[16];
-							sprintf_s(buffer, "%u", entityId.first);
+							sprintf_s(buffer, "%u", static_cast<unsigned int>(entityId.first));
 							ImGui::TableNextColumn();
 							if (ImGui::Selectable(buffer))
 							{

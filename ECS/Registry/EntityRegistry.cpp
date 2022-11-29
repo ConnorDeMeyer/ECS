@@ -261,7 +261,7 @@ void EntityRegistry::Update(float deltaTime)
 		if (system->GetAccumulatedTime() < deltaTime)
 		{
 			float updateInterval = system->GetSystemParameters().updateInterval;
-			int timeAdjustment = (updateInterval != 0.f) ? int(updateInterval / deltaTime) : 1;
+			int timeAdjustment = (updateInterval >= 0.0001f) ? int(updateInterval / deltaTime) : 1;
 
 			auto& profilerInfo = m_ProfilerInfo.find(system->GetSystemParameters().name)->second;
 			++profilerInfo.timesExecuted;
