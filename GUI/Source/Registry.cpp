@@ -53,7 +53,7 @@ void GUI::Registry::DrawEntityRegistryInfo()
 
 			ImGui::Separator();
 			float deltaTime =  1.f / io.Framerate;
-			static bool isPaused{ true };
+			static bool isPaused{ false };
 			ImGui::Text("Delta Time: [%.3f]", deltaTime);
 			ImGui::Text("Frame Rate: [%.1f]", io.Framerate);
 			ImGui::Checkbox("Paused", &isPaused);
